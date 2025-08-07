@@ -21,15 +21,16 @@ const Newsletter = () => {
   }
 
   return (
-    <div className="relative mx-auto my-12 max-w-6xl rounded-xl border bg-gray-800 p-7 md:grid md:grid-cols-2 md:rounded-l-xl md:rounded-r-none md:p-12">
+    <div className="relative mx-auto my-12 max-w-6xl rounded-xl border p-7 md:grid md:grid-cols-2 md:rounded-l-xl md:rounded-r-none md:p-12" 
+         style={{backgroundColor: 'rgba(64, 64, 64, 0.5)', borderColor: '#C41E3A'}}>
       <div className="max-w-lg">
-        <h2 className="mb-4 text-2xl font-bold text-gray-100 md:text-3xl">
-          Stay Updated with the Latest in Web Development
+        <h2 className="mb-4 text-2xl font-bold text-white md:text-3xl">
+          Stay in the Fantasy Red Zone
         </h2>
-        <p className="text-md mb-6 font-medium leading-7 text-gray-300 md:text-lg">
-          Join our community of passionate developers! <br /> Receive monthly
-          updates on the latest tools, frameworks, and techniques that help you
-          level up your development stack.
+        <p className="text-md mb-6 font-medium leading-7 text-gray-200 md:text-lg">
+          Join the ultimate fantasy football insider list! <br /> Get weekly 
+          updates on player rankings, waiver wire gems, and expert analysis 
+          to dominate your leagues.
         </p>
         <form
           onSubmit={handleSubmit}
@@ -39,36 +40,39 @@ const Newsletter = () => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            className="w-full rounded-lg border border-gray-600 bg-gray-700 p-3 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Enter your email for fantasy insights"
+            className="w-full rounded-lg border border-gray-500 bg-gray-800 p-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 shadow-sm"
+            style={{'--tw-ring-color': '#C41E3A'} as React.CSSProperties}
             required
           />
           <button
             type="submit"
             disabled={status === 'loading'}
-            className={`rounded-lg px-5 py-3 font-semibold text-white transition-colors ${
+            className={`rounded-lg px-6 py-3 font-bold uppercase tracking-wide text-white transition-all transform hover:scale-105 shadow-lg ${
               status === 'loading'
                 ? 'bg-gray-500'
-                : 'bg-blue-600 hover:bg-blue-700'
+                : 'hover:opacity-90'
             }`}
+            style={status !== 'loading' ? {backgroundColor: '#C41E3A'} : {}}
           >
-            {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
+            {status === 'loading' ? 'Joining...' : 'Join Red Zone'}
           </button>
         </form>
         {status === 'success' && (
-          <p className="mt-4 text-green-500">
-            Thanks for subscribing! Please confirm your email.
+          <p className="mt-4 font-semibold" style={{color: '#C41E3A'}}>
+            Welcome to the Red Zone! Please confirm your email to get started.
           </p>
         )}
         {status === 'error' && (
-          <p className="mt-4 text-red-500">
+          <p className="mt-4 text-red-400">
             Something went wrong. Please try again.
           </p>
         )}
       </div>
       <div
-        className="absolute right-0 hidden h-full w-2/5 bg-gradient-to-t from-[#4969b8] to-[#7fa8e0] md:block"
+        className="absolute right-0 hidden h-full w-2/5 md:block"
         style={{
+          background: 'linear-gradient(135deg, #C41E3A 0%, #A01729 100%)',
           clipPath: 'polygon(0 0, 10% 100%, 100% 100%, 100% 0)',
         }}
       ></div>

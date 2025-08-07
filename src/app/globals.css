@@ -1,1 +1,87 @@
 @import "tailwindcss";
+
+/* NFL RedZone Color Palette - Enhanced */
+:root {
+  --redzone-red: #DC143C;
+  --redzone-red-dark: #B91C3C;
+  --redzone-red-darker: #991B1B;
+  --redzone-red-light: #F87171;
+  --redzone-black: #0A0A0A;
+  --redzone-dark-gray: #1F1F1F;
+  --redzone-gray: #374151;
+  --redzone-silver: #D1D5DB;
+  --redzone-gold: #FCD34D;
+  --page-bg: #0F0F0F;
+}
+
+/* Page Background with NFL RedZone aesthetic */
+html, body {
+  background: linear-gradient(135deg, var(--redzone-black) 0%, var(--redzone-dark-gray) 50%, var(--redzone-black) 100%);
+  min-height: 100vh;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  color: #ffffff;
+}
+
+/* Typography enhancements */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-bebas-neue), var(--font-inter), sans-serif;
+  letter-spacing: 0.025em;
+}
+
+/* Custom utilities for Fantasy Red Zone */
+@layer utilities {
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .redzone-red {
+    background-color: var(--redzone-red);
+  }
+  
+  .redzone-red-text {
+    color: var(--redzone-red);
+  }
+  
+  .redzone-gradient {
+    background: linear-gradient(135deg, var(--redzone-red) 0%, var(--redzone-red-dark) 50%, var(--redzone-red-darker) 100%);
+  }
+  
+  .redzone-gradient-intense {
+    background: linear-gradient(135deg, var(--redzone-red) 0%, var(--redzone-red-darker) 100%);
+    box-shadow: 0 10px 40px rgba(220, 20, 60, 0.3);
+  }
+  
+  .redzone-text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  }
+  
+  .redzone-glow {
+    box-shadow: 0 0 20px rgba(220, 20, 60, 0.5), 0 0 40px rgba(220, 20, 60, 0.3);
+  }
+  
+  .redzone-border {
+    border: 2px solid var(--redzone-red);
+    border-image: linear-gradient(135deg, var(--redzone-red), var(--redzone-red-dark)) 1;
+  }
+  
+  .redzone-card {
+    background: linear-gradient(135deg, rgba(31, 31, 31, 0.95) 0%, rgba(15, 15, 15, 0.95) 100%);
+    border: 1px solid rgba(220, 20, 60, 0.2);
+    backdrop-filter: blur(10px);
+  }
+  
+  .redzone-hero-bg {
+    background: radial-gradient(ellipse at center, rgba(220, 20, 60, 0.1) 0%, transparent 70%),
+                linear-gradient(135deg, var(--redzone-black) 0%, var(--redzone-dark-gray) 100%);
+  }
+}

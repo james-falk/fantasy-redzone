@@ -15,13 +15,13 @@ const Button: React.FC<ButtonProps> = ({
   onClick,
 }) => {
   const baseStyles =
-    'w-full max-w-xs rounded py-2 font-medium transition duration-300 ease-in-out'
+    'w-full max-w-xs rounded-lg py-3 px-6 font-medium transition duration-300 ease-in-out transform hover:scale-105'
 
   const variantStyles = {
-    primary: 'bg-[#00AAFF] text-white hover:bg-sky-600',
-    secondary: 'bg-[#EBEEF7] text-[#191F33] hover:bg-violet-200',
+    primary: 'nfl-red text-white hover:opacity-90 font-bold uppercase tracking-wide shadow-lg',
+    secondary: 'bg-gray-100 text-gray-800 hover:bg-gray-200 font-semibold',
     outline:
-      'bg-transparent text-[#7D8592] border border-[#D8E0F0] hover:bg-[#D8E0F0]',
+      'bg-transparent border-2 hover:nfl-red hover:text-white font-medium' + ' ' + 'nfl-red-text border-current',
   }
 
   const disabledStyles = 'bg-[#727f94] text-white cursor-not-allowed'

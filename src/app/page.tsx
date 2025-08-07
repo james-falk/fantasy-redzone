@@ -1,36 +1,36 @@
-import { getAllCourses } from '@/services/courses'
-import { posts } from '@/appData/courses'
+import { getAllContent } from '@/services/content'
 import { Faqs } from '@/appData/faqs'
 import Faq from '@/components/faq'
 import Footer from '@/components/footer'
 import Hero from '@/components/hero'
 import Navbar from '@/components/navbar'
 import Newsletter from '@/components/newsletter'
-import ProductList from '@/components/product-list'
-import SectionHeading from '@/components/section-heading'
+import ContentSection from '@/components/content-section'
 
 export default async function Home() {
-  const courses = await getAllCourses()
+  const content = await getAllContent({
+    includeYouTube: false, // ❌ Disabled - shows random videos, not subscriptions
+    includeRSS: false, // Disabled - showing errors
+    includeSubscriptions: true, // ✅ Only show videos from YOUR subscriptions!
+    youtubeQuery: 'fantasy football 2024',
+    youtubeMaxResults: 0,
+    rssLimit: 0,
+    subscriptionsMaxResults: 50, // Increased to get more from your subscriptions
+    subscriptionsDaysBack: 14 // Look back 2 weeks for more content
+  })
 
   return (
     <>
       <header>
         <Navbar />
         <Hero
-          title={['Course', 'Directory']}
-          description="Welcome to our course directory, your ultimate destination for learning and growth. Discover a wide range of courses designed to help you excel in web development, programming, and design!"
+          title={['Fantasy', 'Red Zone']}
+          description="Your ultimate destination for fantasy football content, analysis, and insights. Discover the latest videos, articles, and expert analysis to dominate your fantasy leagues!"
         />
       </header>
 
       <main>
-        <section className="max-w-6xl mx-auto px-3 my-12">
-          <SectionHeading
-            title={['Featured', 'Courses']}
-            subtitle="Browse our curated collection of courses, tutorials, and guides to elevate your skills and expand your knowledge."
-          />
-          <ProductList products={courses} />
-        </section>
-
+        <ContentSection initialContent={content} />
         <Faq items={Faqs} />
         <Newsletter />
       </main>
