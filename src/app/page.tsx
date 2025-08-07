@@ -7,6 +7,7 @@ import Navbar from '@/components/navbar'
 import Newsletter from '@/components/newsletter'
 import ContentSection from '@/components/content-section'
 
+// Last deployment test: 2025-01-07T01:30:00.000Z
 export default async function Home() {
   const content = await getAllContent({
     includeYouTube: false, // ❌ Disabled - shows random videos, not subscriptions
