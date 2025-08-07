@@ -9,6 +9,7 @@ import ContentSection from '@/components/content-section'
 
 // Last deployment test: 2025-01-07T01:30:00.000Z
 export default async function Home() {
+  console.log('🔍 Fetching content with subscriptions...')
   const content = await getAllContent({
     includeYouTube: false, // ❌ Disabled - we want curated content from subscriptions
     includeRSS: false, // Keep disabled until RSS is fixed
@@ -19,6 +20,9 @@ export default async function Home() {
     subscriptionsMaxResults: 50, // Get more from your subscriptions
     subscriptionsDaysBack: 14 // Look back 2 weeks for content
   })
+  
+  console.log('📊 Content fetched:', content.length, 'items')
+  console.log('📺 YouTube videos:', content.filter(c => c.source === 'youtube').length)
 
   return (
     <>
