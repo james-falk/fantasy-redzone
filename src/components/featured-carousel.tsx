@@ -89,75 +89,112 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
         </button>
 
         {/* Carousel Track */}
-        <div className="overflow-hidden rounded-2xl">
-          <div 
-            className="flex transition-transform duration-500 ease-in-out"
-            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          >
-            {featuredContent.map((content) => {
-              const sourceBadge = getSourceBadge(content.source)
-              const isExternal = content.source !== 'static'
+        <div className="relative mx-8 lg:mx-16">
+          <div className="overflow-visible">
+            <div 
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(calc(-${currentIndex * 33.333}% + ${currentIndex * 1rem}))` }}
+            >
+              {featuredContent.map((content, index) => {
+                const sourceBadge = getSourceBadge(content.source)
+                const isExternal = content.source !== 'static'
+                const isCurrent = index === currentIndex
+                const isAdjacent = Math.abs(index - currentIndex) === 1
 
-              return (
-                <div key={content.id} className="w-full flex-shrink-0">
-                  <Link
-                    href={getContentLink(content)}
-                    target={isExternal ? '_blank' : '_self'}
-                    rel={isExternal ? 'noopener noreferrer' : ''}
-                    className="block group"
+                return (
+                  <div 
+                    key={content.id} 
+                    className={`flex-shrink-0 px-2 transition-all duration-500 ${
+                      isCurrent 
+                        ? 'w-full lg:w-1/2 xl:w-2/5 scale-100 opacity-100 z-20' 
+                        : isAdjacent
+                        ? 'w-3/4 lg:w-2/5 xl:w-1/3 scale-90 opacity-70 z-10'
+                        : 'w-1/2 lg:w-1/3 xl:w-1/4 scale-75 opacity-40 z-0'
+                    }`}
                   >
-                    <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden border-2 border-yellow-500/50 shadow-2xl hover:shadow-yellow-500/20 transition-all duration-300 hover:scale-[1.02] hover:border-yellow-400/70">
-                      {/* Featured Badge */}
-                      <div className="absolute top-4 left-4 z-10">
-                        <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg">
-                          ⭐ FEATURED
-                        </span>
-                      </div>
+                    <div
+                      onClick={() => {
+                        if (isCurrent) {
+                          // If it's the current item, navigate to the content
+                          window.open(getContentLink(content), isExternal ? '_blank' : '_self')
+                        } else {
+                          // If it's not current, make it current
+                          setCurrentIndex(index)
+                        }
+                      }}
+                      className="block group cursor-pointer"
+                    >
+                      <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:scale-[1.02] ${
+                        isCurrent 
+                          ? 'border-2 border-yellow-500/70 hover:shadow-yellow-500/30 hover:border-yellow-400/80' 
+                          : 'border border-gray-600/50 hover:border-yellow-500/50'
+                      }`}>
+                        {/* Featured Badge - Only show on current item */}
+                        {isCurrent && (
+                          <div className="absolute top-4 left-4 z-10">
+                            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg">
+                              ⭐ FEATURED
+                            </span>
+                          </div>
+                        )}
 
-                      {/* Source Badge */}
-                      <div className="absolute top-4 right-4 z-10">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-sm ${sourceBadge.bg} ${sourceBadge.text} ${sourceBadge.border}`}>
-                          <span className="mr-1">{sourceBadge.icon}</span>
-                          {sourceBadge.label}
-                        </span>
-                      </div>
-
-                      {/* Content Image */}
-                      <div className="relative h-80 lg:h-96">
-                        <img
-                          src={content.cover}
-                          alt={content.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                        {/* Gradient Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                      </div>
-
-                      {/* Content Info */}
-                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-3 py-1 rounded-lg text-sm font-bold">
-                            {content.category}
-                          </span>
-                          <span className="text-sm text-gray-300 font-medium">
-                            {formatDate(content.publishDate)}
+                        {/* Source Badge */}
+                        <div className="absolute top-4 right-4 z-10">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-sm ${sourceBadge.bg} ${sourceBadge.text} ${sourceBadge.border}`}>
+                            <span className="mr-1">{sourceBadge.icon}</span>
+                            {sourceBadge.label}
                           </span>
                         </div>
-                        
-                        <h3 className="text-2xl lg:text-3xl font-bold mb-2 group-hover:text-yellow-400 transition-colors duration-300 line-clamp-2">
-                          {content.title}
-                        </h3>
-                        
-                        <p className="text-gray-300 text-base line-clamp-2 group-hover:text-gray-200 transition-colors duration-300">
-                          {content.shortDescription}
-                        </p>
+
+                        {/* Content Image */}
+                        <div className={`relative ${isCurrent ? 'h-80 lg:h-96' : 'h-64 lg:h-80'}`}>
+                          <img
+                            src={content.cover}
+                            alt={content.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                          {/* Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                        </div>
+
+                        {/* Content Info - More detailed on current item */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-6 text-white">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`${
+                              isCurrent 
+                                ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black' 
+                                : 'bg-gray-700 text-gray-300'
+                            } px-2 py-1 rounded-lg text-xs font-bold`}>
+                              {content.category}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-xs text-gray-300 font-medium">
+                                {formatDate(content.publishDate)}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h3 className={`font-bold mb-1 transition-colors duration-300 line-clamp-2 ${
+                            isCurrent 
+                              ? 'text-xl lg:text-2xl group-hover:text-yellow-400' 
+                              : 'text-lg group-hover:text-yellow-400'
+                          }`}>
+                            {content.title}
+                          </h3>
+                          
+                          {isCurrent && (
+                            <p className="text-gray-300 text-sm line-clamp-2 group-hover:text-gray-200 transition-colors duration-300">
+                              {content.shortDescription}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </Link>
-                </div>
-              )
-            })}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
