@@ -76,9 +76,56 @@ const generateSlug = (title: string, pubDate: string): string => {
   return `rss-${dateSlug}-${slug}`
 }
 
+// Extract image from ESPN article page
+const extractImageFromESPNPage = async (articleUrl: string): Promise<string> => {
+  try {
+    console.log('🔍 Fetching image from ESPN article:', articleUrl)
+    const response = await fetch(articleUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    })
+    
+    if (!response.ok) {
+      console.log('❌ Failed to fetch article:', response.status)
+      return ''
+    }
+    
+    const html = await response.text()
+    
+    // Try to find the main article image using various ESPN patterns
+    const patterns = [
+      // ESPN's main article image
+      /<meta property="og:image" content="([^"]+)"/i,
+      // ESPN's featured image
+      /<img[^>]+class="[^"]*featured[^"]*"[^>]+src="([^"]+)"/i,
+      // ESPN's hero image
+      /<img[^>]+class="[^"]*hero[^"]*"[^>]+src="([^"]+)"/i,
+      // Any large ESPN image
+      /https:\/\/a\.espncdn\.com\/combiner\/i\?img=[^"&\s]+/g,
+      // General ESPN CDN images
+      /https:\/\/[^"]*\.espncdn\.com\/[^"]*\.(jpg|jpeg|png|gif|webp)/gi
+    ]
+    
+    for (const pattern of patterns) {
+      const match = html.match(pattern)
+      if (match && match[1]) {
+        console.log('✅ Found ESPN article image:', match[1])
+        return match[1]
+      }
+    }
+    
+    console.log('❌ No image found in ESPN article')
+    return ''
+  } catch (error) {
+    console.log('❌ Error fetching ESPN article:', error)
+    return ''
+  }
+}
+
 // Extract image from various RSS formats
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const extractImage = (item: any): string => {
+const extractImage = async (item: any): Promise<string> => {
   console.log('🖼️  DEBUG: Extracting image for:', item.title?.substring(0, 50))
   
   // Try media:content first
@@ -114,21 +161,13 @@ const extractImage = (item: any): string => {
     return imageUrl
   }
   
-  // Try different image patterns
-  const imgMatch2 = content.match(/src=["']([^"']*\.(jpg|jpeg|png|gif|webp))["']/i)
-  if (imgMatch2 && imgMatch2[1]) {
-    console.log('✅ Found image via extension match:', imgMatch2[1])
-    let imageUrl = imgMatch2[1]
-    if (imageUrl.startsWith('//')) {
-      imageUrl = 'https:' + imageUrl
-    } else if (imageUrl.startsWith('/')) {
-      imageUrl = 'https://www.espn.com' + imageUrl
-    }
-    return imageUrl
-  }
-  
-  // Try to extract from ESPN-specific formats
+  // For ESPN articles, try to scrape the actual article page
   if (item.link && item.link.includes('espn.com')) {
+    const scrapedImage = await extractImageFromESPNPage(item.link)
+    if (scrapedImage) {
+      return scrapedImage
+    }
+    
     console.log('🏈 Using ESPN fallback image')
     // Use ESPN's default NFL image
     return 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/default.png&w=350&h=254'
@@ -184,9 +223,9 @@ export async function GET(request: NextRequest) {
       } as APIResponse<RSSContent[]>)
     }
 
-    // Transform to our content format
+    // Transform to our content format with async image extraction
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const articles: RSSContent[] = feed.items.slice(0, limit).map((item: any) => {
+    const articlePromises = feed.items.slice(0, limit).map(async (item: any) => {
       const title = item.title || 'Untitled Article'
       const content = item.content || item.description || item.summary || ''
       const shortDescription = content.replace(/<[^>]*>/g, '').slice(0, 200) + (content.length > 200 ? '...' : '')
@@ -194,11 +233,14 @@ export async function GET(request: NextRequest) {
       const tags = extractTags(title, shortDescription)
       const pubDate = item.pubDate || item.isoDate || new Date().toISOString()
       
+      // Extract image asynchronously
+      const cover = await extractImage(item)
+      
       return {
         id: `rss_${item.guid || generateSlug(title, pubDate)}`,
         title,
         shortDescription,
-        cover: extractImage(item),
+        cover,
         slug: generateSlug(title, pubDate),
         category,
         publishDate: pubDate,
@@ -210,6 +252,9 @@ export async function GET(request: NextRequest) {
         pubDate: pubDate
       }
     })
+
+    // Wait for all image extractions to complete
+    const articles: RSSContent[] = await Promise.all(articlePromises)
 
     // Cache the results
     cache.set(cacheKey, articles)
