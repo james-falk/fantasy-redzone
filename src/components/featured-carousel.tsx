@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Content } from '@/types/content'
-import Link from 'next/link'
 import { formatDate } from '@/utils/functions'
 
 interface FeaturedCarouselProps {
@@ -93,7 +92,7 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
           <div className="overflow-visible">
             <div 
               className="flex transition-transform duration-500 ease-in-out"
-              style={{ transform: `translateX(calc(-${currentIndex * 33.333}% + ${currentIndex * 1rem}))` }}
+              style={{ transform: `translateX(calc(-${currentIndex * 33.333}% + ${currentIndex * 1}rem))` }}
             >
               {featuredContent.map((content, index) => {
                 const sourceBadge = getSourceBadge(content.source)
@@ -115,10 +114,8 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
                     <div
                       onClick={() => {
                         if (isCurrent) {
-                          // If it's the current item, navigate to the content
                           window.open(getContentLink(content), isExternal ? '_blank' : '_self')
                         } else {
-                          // If it's not current, make it current
                           setCurrentIndex(index)
                         }
                       }}
