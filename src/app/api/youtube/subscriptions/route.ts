@@ -18,6 +18,9 @@ if (process.env.YOUTUBE_REFRESH_TOKEN) {
   oauth2Client.setCredentials({
     refresh_token: process.env.YOUTUBE_REFRESH_TOKEN
   })
+  console.log('✅ YouTube OAuth2 configured with refresh token')
+} else {
+  console.log('⚠️ No YOUTUBE_REFRESH_TOKEN found - YouTube subscriptions will not work')
 }
 
 const youtube = google.youtube({
@@ -71,6 +74,16 @@ const extractTags = (title: string, description: string): string[] => {
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if we have the required environment variables
+    if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET || !process.env.YOUTUBE_REFRESH_TOKEN) {
+      console.log('❌ Missing YouTube OAuth credentials for local development')
+      return NextResponse.json({
+        success: false,
+        error: 'YouTube OAuth not configured for local development. Please add YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, and YOUTUBE_REFRESH_TOKEN to .env.local',
+        data: []
+      } as APIResponse<YouTubeContent[]>)
+    }
+
     const { searchParams } = new URL(request.url)
     const maxResults = parseInt(searchParams.get('maxResults') || '50')
     const daysBack = parseInt(searchParams.get('daysBack') || '7') // Default to last 7 days

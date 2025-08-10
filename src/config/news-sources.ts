@@ -100,10 +100,14 @@ export const getEnabledNewsSources = (): NewsSource[] => {
   
   if (enabledSources.length === 0) {
     // Default to public sources if none specified
+    console.log('📰 No NEWS_SOURCES env var found, using default public sources')
     return NEWS_SOURCES.filter(source => !source.requiresAuth)
   }
   
-  return NEWS_SOURCES.filter(source => 
+  const filteredSources = NEWS_SOURCES.filter(source => 
     enabledSources.includes(source.id)
   )
+  
+  console.log(`📰 Enabled news sources: ${filteredSources.map(s => s.name).join(', ')}`)
+  return filteredSources
 }
