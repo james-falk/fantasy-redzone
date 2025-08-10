@@ -6,6 +6,7 @@ import Hero from '@/components/hero'
 import Navbar from '@/components/navbar'
 import Newsletter from '@/components/newsletter'
 import ContentSection from '@/components/content-section'
+import FeaturedCarousel from '@/components/featured-carousel'
 
 // Successfully deployed with YouTube subscriptions: 2025-01-07T02:00:00.000Z
 // 
@@ -29,6 +30,11 @@ export default async function Home() {
     newsLimit: 20 // Get 20 news articles
   })
 
+  // Get the 5 most recent items for featured carousel
+  const featuredContent = content
+    .sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
+    .slice(0, 5)
+
   return (
     <>
       <header>
@@ -40,6 +46,7 @@ export default async function Home() {
       </header>
 
       <main>
+        <FeaturedCarousel featuredContent={featuredContent} />
         <ContentSection initialContent={content} />
         <Faq items={Faqs} />
         <Newsletter />
