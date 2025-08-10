@@ -72,10 +72,14 @@ export interface ContentListResponse extends APIResponse<Content[]> {
 // Fantasy football specific categories
 export const FANTASY_CATEGORIES = [
   'News',
-  'Youtube Video',
+  'Analysis', 
+  'Rankings',
+  'Dynasty',
   'Podcasts',
-  'Websites',
-  'Rankings'
+  'Rookies',
+  'Trades',
+  'Waiver Wire',
+  'Start/Sit'
 ] as const
 
 export const LEAGUE_TYPES = ['Dynasty', 'Redraft'] as const

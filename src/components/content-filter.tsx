@@ -189,6 +189,27 @@ export default function ContentFilterComponent({ content, onFilterChange, classN
 
 
 
+        {/* Content Sources */}
+        <div>
+          <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Content Types</h3>
+          <div className="flex flex-wrap gap-2">
+            {sources.map(source => (
+              <button
+                key={source}
+                onClick={() => handleSourceChange(source)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                  filter.source === source
+                    ? 'redzone-gradient-intense text-white shadow-lg redzone-glow'
+                    : 'bg-white/10 text-gray-300 hover:bg-red-600/20 hover:text-white border border-white/20 hover:border-red-600/30'
+                }`}
+              >
+                <span>{getSourceIcon(source)}</span>
+                {getSourceLabel(source).toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Categories */}
         <div>
           <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Categories</h3>
