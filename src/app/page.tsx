@@ -10,15 +10,15 @@ import ContentSection from '@/components/content-section'
 // Successfully deployed with YouTube subscriptions: 2025-01-07T02:00:00.000Z
 export default async function Home() {
   const content = await getAllContent({
-    includeYouTube: false, // ❌ Disabled - we want curated content from subscriptions
+    includeYouTube: true, // ✅ Enable regular YouTube search (works without OAuth)
     includeRSS: true, // ✅ Enable RSS content for articles
-    includeSubscriptions: true, // ✅ Use YOUR subscriptions for quality content
+    includeSubscriptions: false, // ❌ Disabled - requires OAuth setup
     includeNews: true, // ✅ Enable news articles
-    youtubeQuery: 'fantasy football 2024',
-    youtubeMaxResults: 0,
+    youtubeQuery: 'fantasy football 2024 news analysis',
+    youtubeMaxResults: 25, // Get 25 YouTube videos
     rssLimit: 15, // Get 15 RSS articles
-    subscriptionsMaxResults: 50, // Get more from your subscriptions
-    subscriptionsDaysBack: 14, // Look back 2 weeks for content
+    subscriptionsMaxResults: 0, // Disabled
+    subscriptionsDaysBack: 14,
     newsLimit: 20 // Get 20 news articles
   })
 
