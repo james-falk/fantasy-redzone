@@ -119,7 +119,8 @@ export default function ContentFilterComponent({ content, onFilterChange, classN
   const getSourceLabel = (source: string) => {
     switch (source) {
       case 'youtube': return 'Videos'
-      case 'rss': return 'Articles'
+      case 'rss': return 'News'
+      case 'news': return 'News'
       case 'static': return 'Courses'
       default: return source
     }

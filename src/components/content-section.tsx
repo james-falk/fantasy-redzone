@@ -48,7 +48,7 @@ export default function ContentSection({ initialContent }: ContentSectionProps) 
               </span>
               <span className="flex items-center gap-2 font-medium">
                 <span className="w-3 h-3 bg-green-500 rounded-full shadow-lg"></span>
-                Articles: <span className="text-white font-bold">{filteredContent.filter(item => item.source === 'rss').length}</span>
+                News: <span className="text-white font-bold">{filteredContent.filter(item => item.source === 'rss' || item.source === 'news').length}</span>
               </span>
               <span className="flex items-center gap-2 font-medium">
                 <span className="w-3 h-3 bg-blue-500 rounded-full shadow-lg"></span>

@@ -85,19 +85,33 @@ const extractImage = (item: any): string => {
   }
   
   // Try enclosure
-  if (item.enclosure && item.enclosure.url) {
+  if (item.enclosure && item.enclosure.url && item.enclosure.type?.startsWith('image')) {
     return item.enclosure.url
   }
   
-  // Try to find image in content
-  const content = item.content || item.description || ''
-  const imgMatch = content.match(/<img[^>]+src="([^">]+)"/i)
-  if (imgMatch) {
-    return imgMatch[1]
+  // Try to find image in content/description
+  const content = item.content || item.description || item.summary || ''
+  const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i)
+  if (imgMatch && imgMatch[1]) {
+    let imageUrl = imgMatch[1]
+    // Handle relative URLs
+    if (imageUrl.startsWith('//')) {
+      imageUrl = 'https:' + imageUrl
+    } else if (imageUrl.startsWith('/')) {
+      // For ESPN, prepend their domain
+      imageUrl = 'https://www.espn.com' + imageUrl
+    }
+    return imageUrl
   }
   
-  // Default fantasy football image placeholder
-  return 'https://images.unsplash.com/photo-1566577134770-3d85bb3a9cc4?w=400&h=300&fit=crop'
+  // Try to extract from ESPN-specific formats
+  if (item.link && item.link.includes('espn.com')) {
+    // Use ESPN's default NFL image
+    return 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/default.png&w=350&h=254'
+  }
+  
+  // Default fantasy football themed image
+  return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80'
 }
 
 export async function GET(request: NextRequest) {

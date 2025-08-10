@@ -27,12 +27,14 @@ const ProductCard: FC<ProductCardProps> = ({ post }) => {
   const getSourceBadge = () => {
     switch (source) {
       case 'youtube':
-        return { bg: 'bg-red-600/20', text: 'text-red-400', icon: '📺', border: 'border-red-600/30' }
+        return { bg: 'bg-red-600/20', text: 'text-red-400', icon: '📺', border: 'border-red-600/30', label: 'VIDEO' }
       case 'rss':
-        return { bg: 'bg-green-600/20', text: 'text-green-400', icon: '📰', border: 'border-green-600/30' }
+        return { bg: 'bg-green-600/20', text: 'text-green-400', icon: '📰', border: 'border-green-600/30', label: 'NEWS' }
+      case 'news':
+        return { bg: 'bg-green-600/20', text: 'text-green-400', icon: '📰', border: 'border-green-600/30', label: 'NEWS' }
       case 'static':
       default:
-        return { bg: 'bg-blue-600/20', text: 'text-blue-400', icon: '🎓', border: 'border-blue-600/30' }
+        return { bg: 'bg-blue-600/20', text: 'text-blue-400', icon: '🎓', border: 'border-blue-600/30', label: 'COURSE' }
     }
   }
 
@@ -76,7 +78,7 @@ const ProductCard: FC<ProductCardProps> = ({ post }) => {
           <div className="absolute top-3 right-3">
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-sm ${sourceBadge.bg} ${sourceBadge.text} ${sourceBadge.border}`}>
               <span className="mr-1">{sourceBadge.icon}</span>
-              {source.toUpperCase()}
+              {sourceBadge.label}
             </span>
           </div>
           {/* Gradient overlay */}
