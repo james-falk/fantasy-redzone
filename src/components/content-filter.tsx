@@ -140,34 +140,43 @@ export default function ContentFilterComponent({ content, onFilterChange, classN
         />
       </div>
 
-      {/* Filter Toggle for Mobile */}
-      <div className="flex items-center justify-between mb-6 lg:hidden">
+      {/* Filter Toggle Button - Full Width */}
+      <div className="mb-6">
         <button
           onClick={() => setIsFilterOpen(!isFilterOpen)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg redzone-gradient-intense text-white font-semibold shadow-lg hover:scale-105 transition-transform"
+          className="w-full flex items-center justify-between px-4 py-3 rounded-lg redzone-gradient-intense text-white font-semibold shadow-lg hover:scale-[1.02] transition-all duration-300"
         >
-          <Filter className="w-4 h-4" />
-          FILTERS
-          {hasActiveFilters && (
-            <span className="bg-white text-red-600 text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
-              {(filter.tags?.length || 0) + (filter.category ? 1 : 0) + (filter.source ? 1 : 0) + (filter.leagueType ? 1 : 0) + (searchTerm ? 1 : 0)}
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            <span>FILTERS & CATEGORIES</span>
+            {hasActiveFilters && (
+              <span className="bg-white text-red-600 text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold ml-2">
+                {(filter.tags?.length || 0) + (filter.category ? 1 : 0) + (filter.source ? 1 : 0) + (filter.leagueType ? 1 : 0) + (searchTerm ? 1 : 0)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  clearFilters()
+                }}
+                className="flex items-center gap-1 px-2 py-1 text-white/80 hover:text-white text-xs font-medium transition-colors hover:bg-white/10 rounded"
+              >
+                <X className="w-3 h-3" />
+                CLEAR
+              </button>
+            )}
+            <span className="text-white/80 text-sm">
+              {isFilterOpen ? '▲' : '▼'}
             </span>
-          )}
+          </div>
         </button>
-        
-        {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1 px-3 py-2 text-gray-300 hover:text-white text-sm font-medium transition-colors"
-          >
-            <X className="w-4 h-4" />
-            CLEAR
-          </button>
-        )}
       </div>
 
       {/* Filters */}
-      <div className={`space-y-6 ${isFilterOpen || 'lg:block'} ${!isFilterOpen && 'hidden lg:block'}`}>
+      <div className={`space-y-6 transition-all duration-300 ${isFilterOpen ? 'block' : 'hidden'}`}>
         {/* League Type Toggle */}
         <div>
           <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">League Type</h3>
@@ -253,9 +262,9 @@ export default function ContentFilterComponent({ content, onFilterChange, classN
           </div>
         )}
 
-        {/* Clear Filters - Desktop */}
+        {/* Clear Filters */}
         {hasActiveFilters && (
-          <div className="hidden lg:block pt-4 border-t border-red-600/20">
+          <div className="pt-4 border-t border-red-600/20">
             <button
               onClick={clearFilters}
               className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white text-sm font-semibold border border-white/20 hover:border-red-600/30 rounded-lg hover:bg-red-600/10 transition-all duration-300"

@@ -8,9 +8,10 @@ import SectionHeading from './section-heading'
 
 interface ContentSectionProps {
   initialContent: Content[]
+  featuredContentIds: string[]
 }
 
-export default function ContentSection({ initialContent }: ContentSectionProps) {
+export default function ContentSection({ initialContent, featuredContentIds }: ContentSectionProps) {
   const [filteredContent, setFilteredContent] = useState<Content[]>(initialContent)
 
   const handleFilterChange = useCallback((filtered: Content[]) => {
@@ -57,7 +58,7 @@ export default function ContentSection({ initialContent }: ContentSectionProps) 
             </div>
           </div>
           
-          <ProductList products={filteredContent} />
+          <ProductList products={filteredContent} featuredContentIds={featuredContentIds} />
         </>
       )}
     </section>

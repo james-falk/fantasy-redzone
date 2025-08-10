@@ -35,6 +35,9 @@ export default async function Home() {
     .sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
     .slice(0, 5)
 
+  // Get featured content IDs for styling in the main list
+  const featuredContentIds = featuredContent.map(item => item.id)
+
   return (
     <>
       <header>
@@ -47,7 +50,7 @@ export default async function Home() {
 
       <main>
         <FeaturedCarousel featuredContent={featuredContent} />
-        <ContentSection initialContent={content} />
+        <ContentSection initialContent={content} featuredContentIds={featuredContentIds} />
         <Faq items={Faqs} />
         <Newsletter />
       </main>

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Content } from '@/types/content'
+import { Content, YouTubeContent, RSSContent } from '@/types/content'
+import { NewsArticle } from '@/types/news'
 import { formatDate } from '@/utils/functions'
 
 interface FeaturedCarouselProps {
@@ -31,10 +32,11 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
   const getContentLink = (content: Content): string => {
     switch (content.source) {
       case 'youtube':
-        return (content as any).url
+        return (content as YouTubeContent).url
       case 'rss':
+        return (content as RSSContent).url
       case 'news':
-        return (content as any).url
+        return (content as NewsArticle).url
       case 'static':
       default:
         return `/${content.slug}`

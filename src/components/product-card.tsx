@@ -5,9 +5,10 @@ import { Content, YouTubeContent, RSSContent } from '@/types/content'
 
 interface ProductCardProps {
   post: Content
+  isFeatured?: boolean
 }
 
-const ProductCard: FC<ProductCardProps> = ({ post }) => {
+const ProductCard: FC<ProductCardProps> = ({ post, isFeatured = false }) => {
   const { title, slug, cover, publishDate, category, source } = post
 
   // Determine the link based on content source
@@ -65,8 +66,21 @@ const ProductCard: FC<ProductCardProps> = ({ post }) => {
     >
       <div
         key={post.id}
-        className="flex transform flex-col gap-4 transition-all duration-300 hover:scale-105 redzone-card rounded-xl p-5 shadow-lg hover:shadow-2xl border hover:border-red-600/40 group-hover:redzone-glow"
+        className={`relative flex transform flex-col gap-4 transition-all duration-300 hover:scale-105 redzone-card rounded-xl p-5 shadow-lg hover:shadow-2xl border ${
+          isFeatured 
+            ? 'border-yellow-500/60 hover:border-yellow-400/80 group-hover:shadow-yellow-500/30 group-hover:shadow-2xl' 
+            : 'hover:border-red-600/40 group-hover:redzone-glow'
+        }`}
       >
+        {/* Featured Star Indicator */}
+        {isFeatured && (
+          <div className="absolute top-3 left-3 z-10">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg border border-yellow-400/50">
+              ⭐ FEATURED
+            </span>
+          </div>
+        )}
+        
         <figure className="relative h-48 w-full overflow-hidden">
           <img
             src={cover}
@@ -99,7 +113,9 @@ const ProductCard: FC<ProductCardProps> = ({ post }) => {
           {getMetadata()}
         </p>
 
-        <h3 className="text-white group-hover:text-red-400 mb-2 text-xl font-bold transition-colors duration-300 line-clamp-2">
+        <h3 className={`text-white mb-2 text-xl font-bold transition-colors duration-300 line-clamp-2 ${
+          isFeatured ? 'group-hover:text-yellow-400' : 'group-hover:text-red-400'
+        }`}>
           {title}
         </h3>
 
@@ -114,13 +130,21 @@ const ProductCard: FC<ProductCardProps> = ({ post }) => {
             {post.tags.slice(0, 3).map((tag) => (
               <span 
                 key={tag}
-                className="px-2 py-1 bg-white/10 text-gray-300 text-xs rounded-md border border-white/20 hover:bg-red-600/20 hover:border-red-600/30 transition-colors"
+                className={`px-2 py-1 bg-white/10 text-gray-300 text-xs rounded-md border border-white/20 transition-colors ${
+                  isFeatured 
+                    ? 'hover:bg-yellow-500/20 hover:border-yellow-500/30' 
+                    : 'hover:bg-red-600/20 hover:border-red-600/30'
+                }`}
               >
                 {tag}
               </span>
             ))}
             {post.tags.length > 3 && (
-              <span className="px-2 py-1 bg-red-600/20 text-red-400 text-xs rounded-md border border-red-600/30 font-semibold">
+              <span className={`px-2 py-1 text-xs rounded-md font-semibold ${
+                isFeatured 
+                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' 
+                  : 'bg-red-600/20 text-red-400 border border-red-600/30'
+              }`}>
                 +{post.tags.length - 3}
               </span>
             )}

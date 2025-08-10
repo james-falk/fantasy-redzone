@@ -179,9 +179,10 @@ const extractImage = async (item: any): Promise<string> => {
 }
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const feedUrl = searchParams.get('url') || process.env.RSS_FEED_URL || 'https://www.espn.com/espn/rss/nfl/news'
+  
   try {
-    const { searchParams } = new URL(request.url)
-    const feedUrl = searchParams.get('url') || process.env.RSS_FEED_URL || 'https://www.espn.com/espn/rss/nfl/news'
     const limit = parseInt(searchParams.get('limit') || '20')
     
     // Create cache key
@@ -271,7 +272,6 @@ export async function GET(request: NextRequest) {
     console.error('Feed URL that failed:', searchParams.get('url') || process.env.RSS_FEED_URL || 'https://www.espn.com/espn/rss/nfl/news')
     
     // Try backup RSS feed if primary fails
-    const { searchParams } = new URL(request.url)
     const feedUrl = searchParams.get('url')
     const backupUrl = process.env.BACKUP_RSS_FEED_URL
     
@@ -281,17 +281,20 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '20')
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const articles: RSSContent[] = feed.items.slice(0, limit).map((item: any) => {
+        const articlePromises = feed.items.slice(0, limit).map(async (item: any) => {
           const title = item.title || 'Untitled Article'
           const content = item.content || item.description || ''
           const shortDescription = content.replace(/<[^>]*>/g, '').slice(0, 200)
           const pubDate = item.pubDate || new Date().toISOString()
           
+          // Extract image asynchronously
+          const cover = await extractImage(item)
+          
           return {
             id: `rss_backup_${item.guid || generateSlug(title, pubDate)}`,
             title,
             shortDescription,
-            cover: extractImage(item),
+            cover,
             slug: generateSlug(title, pubDate),
             category: 'News',
             publishDate: pubDate,
@@ -303,6 +306,8 @@ export async function GET(request: NextRequest) {
             pubDate
           }
         })
+        
+        const articles = await Promise.all(articlePromises)
         
         return NextResponse.json({
           success: true,

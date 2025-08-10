@@ -1,0 +1,5 @@
+[33mc38679d[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix Vercel auto-deployment configuration
+[33m0ae0c5e[m Trigger deployment
+[33m1ad7bfe[m Add automated content refresh and news article integration
+[33m120ab9c[m Clean up debugging logs - YouTube subscriptions working!
+[33md9510e7[m Add debugging logs to track content fetching
