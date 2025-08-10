@@ -79,20 +79,29 @@ const generateSlug = (title: string, pubDate: string): string => {
 // Extract image from various RSS formats
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const extractImage = (item: any): string => {
+  console.log('🖼️  DEBUG: Extracting image for:', item.title?.substring(0, 50))
+  
   // Try media:content first
   if (item.media && item.media.$ && item.media.$.url) {
+    console.log('✅ Found media.$.url:', item.media.$.url)
     return item.media.$.url
   }
   
   // Try enclosure
-  if (item.enclosure && item.enclosure.url && item.enclosure.type?.startsWith('image')) {
-    return item.enclosure.url
+  if (item.enclosure && item.enclosure.url) {
+    console.log('✅ Found enclosure.url:', item.enclosure.url, 'type:', item.enclosure.type)
+    if (item.enclosure.type?.startsWith('image')) {
+      return item.enclosure.url
+    }
   }
   
   // Try to find image in content/description
   const content = item.content || item.description || item.summary || ''
+  console.log('🔍 Searching in content length:', content.length)
+  
   const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i)
   if (imgMatch && imgMatch[1]) {
+    console.log('✅ Found img tag:', imgMatch[1])
     let imageUrl = imgMatch[1]
     // Handle relative URLs
     if (imageUrl.startsWith('//')) {
@@ -101,15 +110,31 @@ const extractImage = (item: any): string => {
       // For ESPN, prepend their domain
       imageUrl = 'https://www.espn.com' + imageUrl
     }
+    console.log('✅ Final image URL:', imageUrl)
+    return imageUrl
+  }
+  
+  // Try different image patterns
+  const imgMatch2 = content.match(/src=["']([^"']*\.(jpg|jpeg|png|gif|webp))["']/i)
+  if (imgMatch2 && imgMatch2[1]) {
+    console.log('✅ Found image via extension match:', imgMatch2[1])
+    let imageUrl = imgMatch2[1]
+    if (imageUrl.startsWith('//')) {
+      imageUrl = 'https:' + imageUrl
+    } else if (imageUrl.startsWith('/')) {
+      imageUrl = 'https://www.espn.com' + imageUrl
+    }
     return imageUrl
   }
   
   // Try to extract from ESPN-specific formats
   if (item.link && item.link.includes('espn.com')) {
+    console.log('🏈 Using ESPN fallback image')
     // Use ESPN's default NFL image
     return 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/default.png&w=350&h=254'
   }
   
+  console.log('❌ No image found, using fallback')
   // Default fantasy football themed image
   return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80'
 }
@@ -138,6 +163,18 @@ export async function GET(request: NextRequest) {
     console.log('📰 Attempting to parse RSS feed:', feedUrl)
     const feed = await parser.parseURL(feedUrl)
     console.log('✅ RSS feed parsed successfully, items found:', feed.items?.length || 0)
+    
+    // Debug: Log the first item to see what image data is available
+    if (feed.items && feed.items.length > 0) {
+      const firstItem = feed.items[0]
+      console.log('🔍 DEBUG: First RSS item structure:')
+      console.log('- Title:', firstItem.title)
+      console.log('- Media:', firstItem.media)
+      console.log('- Enclosure:', firstItem.enclosure)
+      console.log('- Content snippet:', firstItem.content?.substring(0, 200))
+      console.log('- Description snippet:', firstItem.description?.substring(0, 200))
+      console.log('- All keys:', Object.keys(firstItem))
+    }
     
     if (!feed.items || feed.items.length === 0) {
       return NextResponse.json({
