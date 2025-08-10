@@ -120,11 +120,14 @@ async function scrapeWebContent(source: NewsSource): Promise<NewsArticle[]> {
           : $element.parent()
         
         const title = $element.text().trim() || 'Untitled Article'
-        const content = $container.find(source.selector.content).first().text().trim() || ''
-        const dateText = $container.find(source.selector.date).first().text().trim() || 
-                        $container.find(source.selector.date).first().attr('datetime') || ''
-        const link = $element.attr('href') || $container.find(source.selector.link).first().attr('href') || source.url
-        const image = $container.find(source.selector.image || 'img').first().attr('src') || '/placeholder-news.jpg'
+        const content = source.selector?.content ? $container.find(source.selector.content).first().text().trim() : ''
+        const dateText = source.selector?.date ? 
+                        ($container.find(source.selector.date).first().text().trim() || 
+                         $container.find(source.selector.date).first().attr('datetime') || '') : ''
+        const link = $element.attr('href') || 
+                    (source.selector?.link ? $container.find(source.selector.link).first().attr('href') : '') || 
+                    source.url
+        const image = $container.find(source.selector?.image || 'img').first().attr('src') || '/placeholder-news.jpg'
         
         if (title && title.length > 10) { // Filter out navigation items
           const category = categorizeArticle(title, content)

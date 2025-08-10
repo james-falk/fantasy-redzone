@@ -1,0 +1,37 @@
+name: Vercel Deployment Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'nextjs-directory-site-starter/package-lock.json'
+        
+    - name: Install dependencies
+      run: |
+        cd nextjs-directory-site-starter
+        npm ci
+        
+    - name: Build application
+      run: |
+        cd nextjs-directory-site-starter
+        npm run build
+        
+    - name: Lint check
+      run: |
+        cd nextjs-directory-site-starter
+        npm run lint
