@@ -174,8 +174,16 @@ const extractImage = async (item: any): Promise<string> => {
   }
   
   console.log('❌ No image found, using fallback')
-  // Default fantasy football themed image
-  return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80'
+  // Default fantasy football themed images - rotate for variety
+  const fallbackImages = [
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80', // Football field
+    'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=400&h=300&fit=crop&q=80', // Football helmet
+    'https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=400&h=300&fit=crop&q=80', // Football stadium
+    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&q=80', // Football player
+    'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=300&fit=crop&q=80'  // Football action
+  ]
+  const randomIndex = Math.floor(Math.random() * fallbackImages.length)
+  return fallbackImages[randomIndex]
 }
 
 export async function GET(request: NextRequest) {

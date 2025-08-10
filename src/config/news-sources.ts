@@ -1,11 +1,11 @@
 import { NewsSource } from '@/types/news'
 
 export const NEWS_SOURCES: NewsSource[] = [
-  // ESPN Fantasy
+  // ESPN Fantasy RSS
   {
     id: 'espn-fantasy',
     name: 'ESPN Fantasy',
-    url: 'https://www.espn.com/fantasy/football/',
+    url: 'https://www.espn.com/espn/rss/nfl/news',
     type: 'rss',
     requiresAuth: false
   },
@@ -19,36 +19,40 @@ export const NEWS_SOURCES: NewsSource[] = [
     requiresAuth: false
   },
   
-  // NFL.com Fantasy
+  // NFL.com RSS
   {
-    id: 'nfl-fantasy',
-    name: 'NFL Fantasy',
-    url: 'https://www.nfl.com/fantasy/',
-    type: 'scrape',
-    requiresAuth: false,
-    selector: {
-      title: 'h3.d3-o-media-object__title, h2.nfl-c-content-header__title',
-      content: '.nfl-c-article__content p, .d3-o-media-object__summary',
-      date: 'time, .nfl-c-timestamp',
-      link: 'a[href*="/fantasy/"]',
-      image: 'img.nfl-c-hero-banner__image, img.d3-o-media-object__image'
-    }
+    id: 'nfl-news',
+    name: 'NFL News',
+    url: 'https://www.nfl.com/rss/news',
+    type: 'rss',
+    requiresAuth: false
   },
   
-  // Yahoo Fantasy
+  // Yahoo Sports NFL RSS
   {
-    id: 'yahoo-fantasy',
-    name: 'Yahoo Fantasy',
-    url: 'https://sports.yahoo.com/fantasy/football/',
-    type: 'scrape',
-    requiresAuth: false,
-    selector: {
-      title: '[data-test-locator="stream-item-title"], h3 a',
-      content: '[data-test-locator="stream-item-summary"], .summary',
-      date: 'time, [data-test-locator="stream-item-date"]',
-      link: 'a[href*="/fantasy/"]',
-      image: 'img[data-test-locator="stream-item-image"], .stream-item-image img'
-    }
+    id: 'yahoo-nfl',
+    name: 'Yahoo Sports NFL',
+    url: 'https://sports.yahoo.com/nfl/rss.xml',
+    type: 'rss',
+    requiresAuth: false
+  },
+  
+  // CBS Sports Fantasy RSS
+  {
+    id: 'cbs-fantasy',
+    name: 'CBS Sports Fantasy',
+    url: 'https://www.cbssports.com/fantasy/football/news/rss/',
+    type: 'rss',
+    requiresAuth: false
+  },
+  
+  // Pro Football Talk RSS
+  {
+    id: 'pft',
+    name: 'Pro Football Talk',
+    url: 'https://profootballtalk.nbcsports.com/feed/',
+    type: 'rss',
+    requiresAuth: false
   },
   
   // The Athletic (requires auth - example)
