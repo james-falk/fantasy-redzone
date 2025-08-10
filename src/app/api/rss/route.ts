@@ -103,7 +103,7 @@ const extractImage = (item: any): string => {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const feedUrl = searchParams.get('url') || process.env.RSS_FEED_URL || 'https://www.fantasypros.com/rss/nfl/news.xml'
+    const feedUrl = searchParams.get('url') || process.env.RSS_FEED_URL || 'https://www.espn.com/espn/rss/nfl/news'
     const limit = parseInt(searchParams.get('limit') || '20')
     
     // Create cache key
@@ -121,7 +121,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse RSS feed
+    console.log('📰 Attempting to parse RSS feed:', feedUrl)
     const feed = await parser.parseURL(feedUrl)
+    console.log('✅ RSS feed parsed successfully, items found:', feed.items?.length || 0)
     
     if (!feed.items || feed.items.length === 0) {
       return NextResponse.json({
@@ -169,7 +171,8 @@ export async function GET(request: NextRequest) {
     } as APIResponse<RSSContent[]>)
 
   } catch (error) {
-    console.error('RSS Parser Error:', error)
+    console.error('❌ RSS Parser Error:', error)
+    console.error('Feed URL that failed:', searchParams.get('url') || process.env.RSS_FEED_URL || 'https://www.espn.com/espn/rss/nfl/news')
     
     // Try backup RSS feed if primary fails
     const { searchParams } = new URL(request.url)
