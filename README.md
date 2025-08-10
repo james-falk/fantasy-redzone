@@ -14,6 +14,13 @@ If you want to create a directory website with Next.js, this repo will help you 
 - **Clean Project Structure**: Well-organized `components` folder inside `src`.
 - **Open Source**: Free to use with MIT License.
 
+### 🚀 Fantasy Red Zone Updates (2024-08-10)
+- **Automated Content Refresh**: YouTube videos update 3x daily automatically
+- **News Integration**: Real articles from ESPN, FantasyPros, NFL.com, Yahoo, Rotoworld
+- **Smart Categorization**: Auto-categorizes content (Rankings, Start/Sit, Injury Reports, etc.)
+- **Vercel Cron Jobs**: Scheduled refreshes at 6 AM, 2 PM, and 10 PM UTC
+- **GitHub Actions Backup**: Platform-agnostic deployment triggers
+
 ## Post Details Page UI
 
 ![post details page ui](https://ik.imagekit.io/cpnw7c0xpe/Tailwind%20Components/Blogs/directory-course-details-page-ui.png?updatedAt=1740051949956)

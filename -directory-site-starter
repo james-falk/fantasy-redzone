@@ -1,0 +1,5 @@
+[33m1ad7bfe[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add automated content refresh and news article integration
+[33m120ab9c[m Clean up debugging logs - YouTube subscriptions working!
+[33md9510e7[m Add debugging logs to track content fetching
+[33mea69783[m Revert to using YouTube subscriptions for curated content
+[33mac806ce[m Update homepage with timestamp comment for deployment trigger
