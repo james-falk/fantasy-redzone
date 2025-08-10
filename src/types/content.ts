@@ -7,7 +7,7 @@ export interface BaseContent {
   slug: string
   category: string
   publishDate: string
-  source: 'static' | 'youtube' | 'rss'
+  source: 'static' | 'youtube' | 'rss' | 'news'
   tags: string[]
 }
 
@@ -39,8 +39,11 @@ export interface RSSContent extends BaseContent {
   pubDate: string
 }
 
+// Import news types
+import { NewsArticle } from './news'
+
 // Union type for all content
-export type Content = Course | YouTubeContent | RSSContent
+export type Content = Course | YouTubeContent | RSSContent | NewsArticle
 
 // Content filter interface
 export interface ContentFilter {

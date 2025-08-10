@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import { Content, Course, YouTubeContent, RSSContent, ContentFilter, APIResponse } from '@/types/content'
+import { NewsArticle } from '@/types/news'
 
 // Cache for static content
 let staticContentCache: Course[] | null = null
@@ -138,26 +139,63 @@ export const getYouTubeSubscriptions = async (
   }
 }
 
+// Function to fetch news content
+export const getNewsContent = async (
+  limit: number = 20,
+  sourceId?: string
+): Promise<NewsArticle[]> => {
+  try {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      ...(sourceId && { source: sourceId })
+    })
+    
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const response = await fetch(`${baseUrl}/api/news?${params}`)
+    
+    if (!response.ok) {
+      console.error('News API HTTP Error:', response.status, response.statusText)
+      return []
+    }
+    
+    const result: APIResponse<NewsArticle[]> = await response.json()
+    
+    if (result.success && result.data) {
+      return result.data
+    }
+    
+    console.error('News API Error:', result.error)
+    return []
+  } catch (error) {
+    console.error('Error fetching news content:', error)
+    return []
+  }
+}
+
 // Function to get all content (static + dynamic)
 export const getAllContent = async (options?: {
   includeYouTube?: boolean
   includeRSS?: boolean
   includeSubscriptions?: boolean
+  includeNews?: boolean
   youtubeQuery?: string
   youtubeMaxResults?: number
   rssLimit?: number
   subscriptionsMaxResults?: number
   subscriptionsDaysBack?: number
+  newsLimit?: number
 }): Promise<Content[]> => {
   const {
     includeYouTube = true,
     includeRSS = true,
     includeSubscriptions = true,
+    includeNews = true,
     youtubeQuery = 'fantasy football',
     youtubeMaxResults = 15,
     rssLimit = 15,
     subscriptionsMaxResults = 25,
-    subscriptionsDaysBack = 7
+    subscriptionsDaysBack = 7,
+    newsLimit = 15
   } = options || {}
 
   try {
@@ -166,12 +204,14 @@ export const getAllContent = async (options?: {
     const youtubePromise = includeYouTube ? getYouTubeContent(youtubeQuery, youtubeMaxResults) : Promise.resolve([])
     const rssPromise = includeRSS ? getRSSContent(undefined, rssLimit) : Promise.resolve([])
     const subscriptionsPromise = includeSubscriptions ? getYouTubeSubscriptions(subscriptionsMaxResults, subscriptionsDaysBack) : Promise.resolve([])
+    const newsPromise = includeNews ? getNewsContent(newsLimit) : Promise.resolve([])
 
-    const [staticContent, youtubeContent, rssContent, subscriptionContent] = await Promise.all([
+    const [staticContent, youtubeContent, rssContent, subscriptionContent, newsContent] = await Promise.all([
       staticPromise,
       youtubePromise,
       rssPromise,
-      subscriptionsPromise
+      subscriptionsPromise,
+      newsPromise
     ])
     
     // Combine all content
@@ -179,7 +219,8 @@ export const getAllContent = async (options?: {
       ...staticContent,
       ...youtubeContent,
       ...rssContent,
-      ...subscriptionContent
+      ...subscriptionContent,
+      ...newsContent
     ]
 
     // Remove duplicates (in case same video appears in both YouTube search and subscriptions)

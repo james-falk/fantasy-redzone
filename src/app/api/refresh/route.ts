@@ -23,13 +23,18 @@ export async function POST(request: NextRequest) {
     console.log('✅ Cleared all caches')
 
     // Pre-warm the caches by fetching fresh content
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
     const refreshPromises = [
-      // Refresh YouTube subscriptions
-      fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/youtube/subscriptions?maxResults=50&daysBack=7`),
-      // Refresh regular YouTube search
-      fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/youtube?q=fantasy+football+2024&maxResults=20`),
+      // Refresh YouTube subscriptions (most recent videos from subscribed channels)
+      fetch(`${baseUrl}/api/youtube/subscriptions?maxResults=50&daysBack=3`),
+      // Refresh multiple YouTube searches for broader coverage
+      fetch(`${baseUrl}/api/youtube?q=fantasy+football+2024&maxResults=15`),
+      fetch(`${baseUrl}/api/youtube?q=fantasy+football+news&maxResults=10`),
+      fetch(`${baseUrl}/api/youtube?q=fantasy+football+rankings&maxResults=10`),
       // Refresh RSS content
-      fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/rss?limit=20`)
+      fetch(`${baseUrl}/api/rss?limit=20`),
+      // Refresh news content
+      fetch(`${baseUrl}/api/news?limit=25`)
     ]
 
     const results = await Promise.allSettled(refreshPromises)
@@ -38,7 +43,7 @@ export async function POST(request: NextRequest) {
     let errorCount = 0
 
     results.forEach((result, index) => {
-      const sources = ['YouTube Subscriptions', 'YouTube Search', 'RSS']
+      const sources = ['YouTube Subscriptions', 'YouTube General', 'YouTube News', 'YouTube Rankings', 'RSS', 'News Articles']
       if (result.status === 'fulfilled') {
         console.log(`✅ Refreshed ${sources[index]}`)
         successCount++

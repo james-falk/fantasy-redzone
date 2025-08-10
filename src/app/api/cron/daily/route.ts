@@ -3,11 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 // This endpoint can be called by external cron services (like Vercel Cron or GitHub Actions)
 export async function GET(request: NextRequest) {
   try {
-    // Verify the request is from a cron service
-    const cronSecret = request.nextUrl.searchParams.get('secret')
-    const expectedSecret = process.env.CRON_SECRET || 'your-cron-secret-here'
+    // For Vercel Cron, check the cron secret header if provided
+    const cronSecret = request.nextUrl.searchParams.get('secret') || request.headers.get('authorization')
+    const expectedSecret = process.env.CRON_SECRET
     
-    if (cronSecret !== expectedSecret) {
+    // If CRON_SECRET is set, verify it. Otherwise, allow (for Vercel Cron which has built-in auth)
+    if (expectedSecret && cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
       return NextResponse.json({
         success: false,
         error: 'Invalid cron secret'
