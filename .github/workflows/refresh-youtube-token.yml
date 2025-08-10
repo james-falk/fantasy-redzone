@@ -1,0 +1,82 @@
+name: Refresh YouTube OAuth Token
+
+on:
+  schedule:
+    # Run every day at 6 AM UTC (1 AM EST)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  refresh-token:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Refresh YouTube OAuth Token
+      run: |
+        echo "🔄 Attempting to refresh YouTube OAuth token..."
+        
+        RESPONSE=$(curl -s -w "\n%{http_code}" \
+          -X POST \
+          -H "Authorization: Bearer ${{ secrets.REFRESH_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          "${{ secrets.SITE_URL }}/api/youtube/refresh-token")
+        
+        HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+        BODY=$(echo "$RESPONSE" | head -n -1)
+        
+        echo "HTTP Status: $HTTP_CODE"
+        echo "Response: $BODY"
+        
+        if [ "$HTTP_CODE" -eq 200 ]; then
+          echo "✅ YouTube token refresh successful"
+          
+          # Parse the response to check token status
+          TOKEN_STATUS=$(echo "$BODY" | grep -o '"tokenStatus":"[^"]*"' | cut -d'"' -f4)
+          echo "Token Status: $TOKEN_STATUS"
+          
+          if [ "$TOKEN_STATUS" = "refreshed" ]; then
+            echo "🎉 Token was refreshed successfully"
+          elif [ "$TOKEN_STATUS" = "valid" ]; then
+            echo "✅ Token was already valid"
+          fi
+          
+        elif [ "$HTTP_CODE" -eq 401 ]; then
+          echo "❌ CRITICAL: YouTube refresh token has expired!"
+          echo "🔧 Action required: Visit ${{ secrets.SITE_URL }}/api/youtube/setup to re-authenticate"
+          
+          # Create an issue to alert about expired token
+          if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+            curl -X POST \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/issues \
+              -d '{
+                "title": "🚨 YouTube OAuth Token Expired - Action Required",
+                "body": "The YouTube OAuth refresh token has expired and needs manual renewal.\n\n**Action Required:**\n1. Visit: `${{ secrets.SITE_URL }}/api/youtube/setup`\n2. Complete OAuth flow\n3. Close this issue once resolved\n\n**Error Details:**\n```\n'"$BODY"'\n```",
+                "labels": ["bug", "urgent", "oauth"]
+              }'
+          fi
+          
+          exit 1
+        else
+          echo "❌ Token refresh failed with status $HTTP_CODE"
+          echo "Response: $BODY"
+          exit 1
+        fi
+
+    - name: Trigger Content Refresh
+      if: success()
+      run: |
+        echo "🔄 Triggering content refresh after successful token refresh..."
+        
+        curl -X POST \
+          -H "Authorization: Bearer ${{ secrets.REFRESH_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          "${{ secrets.SITE_URL }}/api/refresh" \
+          || echo "⚠️ Content refresh failed, but token refresh was successful"
+
+    - name: Notify Success
+      if: success()
+      run: |
+        echo "🎉 YouTube OAuth token maintenance completed successfully"
+        echo "✅ Token is valid and content refresh triggered"

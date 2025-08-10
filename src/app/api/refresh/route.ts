@@ -24,17 +24,34 @@ export async function POST(request: NextRequest) {
 
     // Pre-warm the caches by fetching fresh content
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    
+    // First, check YouTube token health
+    console.log('🔍 Checking YouTube OAuth token health...')
+    try {
+      const tokenHealthResponse = await fetch(`${baseUrl}/api/youtube/refresh-token`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.REFRESH_TOKEN || 'default-refresh-token'}`
+        }
+      })
+      
+      if (tokenHealthResponse.ok) {
+        const tokenHealth = await tokenHealthResponse.json()
+        console.log('✅ YouTube token status:', tokenHealth.tokenStatus)
+      } else {
+        console.log('⚠️ YouTube token check failed:', tokenHealthResponse.status)
+      }
+    } catch (error) {
+      console.log('⚠️ YouTube token health check error:', error)
+    }
+
     const refreshPromises = [
       // Refresh YouTube subscriptions (most recent videos from subscribed channels)
       fetch(`${baseUrl}/api/youtube/subscriptions?maxResults=50&daysBack=3`),
-      // Refresh multiple YouTube searches for broader coverage
-      fetch(`${baseUrl}/api/youtube?q=fantasy+football+2024&maxResults=15`),
-      fetch(`${baseUrl}/api/youtube?q=fantasy+football+news&maxResults=10`),
-      fetch(`${baseUrl}/api/youtube?q=fantasy+football+rankings&maxResults=10`),
       // Refresh RSS content
-      fetch(`${baseUrl}/api/rss?limit=20`),
+      fetch(`${baseUrl}/api/rss?limit=25`),
       // Refresh news content
-      fetch(`${baseUrl}/api/news?limit=25`)
+      fetch(`${baseUrl}/api/news?limit=40`)
     ]
 
     const results = await Promise.allSettled(refreshPromises)
