@@ -18,12 +18,12 @@ import FeaturedCarousel from '@/components/featured-carousel'
 //
 export default async function Home() {
   const content = await getAllContent({
-    includeYouTube: true, // ✅ Enable YouTube search as fallback
+    includeYouTube: false, // ❌ Disabled - we want curated content from subscriptions
     includeRSS: true, // ✅ Enable RSS content for articles
     includeSubscriptions: true, // ✅ Use YOUR subscriptions for quality content (OAuth)
     includeNews: true, // ✅ Enable news articles
     youtubeQuery: 'fantasy football 2024',
-    youtubeMaxResults: 15, // Get some YouTube videos as fallback
+    youtubeMaxResults: 0, // Not using regular YouTube search
     rssLimit: 25, // Get more RSS articles
     subscriptionsMaxResults: 50, // Get more from your subscriptions
     subscriptionsDaysBack: 14, // Look back 2 weeks for content
