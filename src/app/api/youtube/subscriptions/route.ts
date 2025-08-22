@@ -2,6 +2,7 @@ import { google } from 'googleapis'
 import { NextRequest, NextResponse } from 'next/server'
 import NodeCache from 'node-cache'
 import { YouTubeContent, APIResponse } from '@/types/content'
+import { logger } from '@/lib/logger'
 
 // Initialize cache with longer TTL for subscriptions (2 hours)
 const cache = new NodeCache({ stdTTL: 2 * 60 * 60 })
@@ -73,10 +74,23 @@ const extractTags = (title: string, description: string): string[] => {
 }
 
 export async function GET(request: NextRequest) {
+  const requestId = `youtube_subs_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const startTime = Date.now()
+  const context = logger.createRequestContext(requestId, {
+    operation: 'youtube_subscriptions_fetch',
+    userAgent: request.headers.get('user-agent')
+  })
+  
   try {
     // Check if we have the required environment variables
     if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET || !process.env.YOUTUBE_REFRESH_TOKEN) {
-      console.log('❌ Missing YouTube OAuth credentials for local development')
+      logger.error('Missing YouTube OAuth credentials', new Error('Missing environment variables'), {
+        ...context,
+        hasClientId: !!process.env.YOUTUBE_CLIENT_ID,
+        hasClientSecret: !!process.env.YOUTUBE_CLIENT_SECRET,
+        hasRefreshToken: !!process.env.YOUTUBE_REFRESH_TOKEN
+      })
+      
       return NextResponse.json({
         success: false,
         error: 'YouTube OAuth not configured for local development. Please add YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, and YOUTUBE_REFRESH_TOKEN to .env.local',
@@ -224,6 +238,32 @@ export async function GET(request: NextRequest) {
 
     // Cache the results
     cache.set(cacheKey, sortedVideos)
+    
+    const duration = Date.now() - startTime
+
+    // Log successful YouTube subscriptions fetch with detailed payload
+    logger.contentUpdateSuccess('YouTube Subscriptions', {
+      source: 'youtube',
+      count: sortedVideos.length,
+      cached: false,
+      responseTime: duration,
+      subscriptions: channelIds.length,
+      items: sortedVideos.slice(0, 5).map(video => ({
+        id: video.id,
+        title: video.title.substring(0, 100) + (video.title.length > 100 ? '...' : ''),
+        publishDate: video.publishDate,
+        category: video.category,
+        channelTitle: video.channelTitle,
+        viewCount: video.viewCount
+      }))
+    }, {
+      ...context,
+      duration,
+      cached: false,
+      maxResults,
+      daysBack,
+      totalSubscriptions: channelIds.length
+    })
 
     return NextResponse.json({
       success: true,
@@ -234,7 +274,11 @@ export async function GET(request: NextRequest) {
     } as APIResponse<YouTubeContent[]> & { subscriptions: number })
 
   } catch (error) {
-    console.error('YouTube Subscriptions API Error:', error)
+    logger.error('YouTube Subscriptions API failed', error instanceof Error ? error : new Error('Unknown error'), {
+      ...context,
+      duration: Date.now() - startTime
+    })
+    
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch subscription videos',
