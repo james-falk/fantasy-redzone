@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const maxResults = parseInt(searchParams.get('maxResults') || '30')
-    const daysBack = parseInt(searchParams.get('daysBack') || '7')
+    const daysBack = parseInt(searchParams.get('daysBack') || '30') // Increased from 7 to 30 days
     
     const cacheKey = `youtube_simple_${maxResults}_${daysBack}`
     
@@ -145,9 +145,10 @@ export async function GET(request: NextRequest) {
       try {
         const videosPerChannel = channel.priority === 1 ? 8 : 4 // Priority channels get more videos
         
-        console.log(`🔍 Fetching ${videosPerChannel} videos from ${channel.name}...`)
+                console.log(`🔍 Fetching ${videosPerChannel} videos from ${channel.name}...`)
         
-        const searchResponse = await youtube.search.list({
+        // First try with date filter
+        let searchResponse = await youtube.search.list({
           part: ['snippet'],
           channelId: channel.id,
           type: ['video'],
@@ -155,13 +156,31 @@ export async function GET(request: NextRequest) {
           publishedAfter: publishedAfter,
           maxResults: videosPerChannel,
           relevanceLanguage: 'en',
-          regionCode: 'US'
+          regionCode: 'US',
+          safeSearch: 'none'
         })
 
+        // If no results with date filter, try without it
         if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
-          console.log(`⚠️ No videos found for ${channel.name}`)
+          console.log(`⚠️ No recent videos for ${channel.name}, trying without date filter...`)
+          searchResponse = await youtube.search.list({
+            part: ['snippet'],
+            channelId: channel.id,
+            type: ['video'],
+            order: 'date',
+            maxResults: videosPerChannel,
+            relevanceLanguage: 'en',
+            regionCode: 'US',
+            safeSearch: 'none'
+          })
+        }
+
+        if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
+          console.log(`❌ No videos found for ${channel.name} even without date filter`)
           continue
         }
+
+        console.log(`✅ Found ${searchResponse.data.items.length} videos for ${channel.name}`)
 
         // Get video IDs for detailed info
         const videoIds = searchResponse.data.items?.map((item) => item.id?.videoId).filter(Boolean) || []

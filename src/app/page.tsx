@@ -24,7 +24,7 @@ export default async function Home() {
     youtubeMaxResults: 30, // Get more YouTube videos from curated channels
     rssLimit: 25, // Get more RSS articles
     subscriptionsMaxResults: 0, // Not using OAuth subscriptions
-    subscriptionsDaysBack: 7, // Look back 1 week for content
+    subscriptionsDaysBack: 30, // Look back 1 month for content
     newsLimit: 40 // Get more news articles
   })
 
