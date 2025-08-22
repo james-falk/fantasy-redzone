@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger'
 // Initialize cache with 30-minute TTL
 const cache = new NodeCache({ stdTTL: 30 * 60 })
 
-// Top Fantasy Football YouTube Channels
+// Top Fantasy Football YouTube Channels (verified IDs)
 const FANTASY_FOOTBALL_CHANNELS = [
   {
     id: 'UCMDHrONRBQ4qdBDzpOZdNRA',
@@ -16,13 +16,8 @@ const FANTASY_FOOTBALL_CHANNELS = [
   },
   {
     id: 'UC5KHLFhvv6JYkgKGdE2EGqg', 
-    name: 'Fantasy Footballers',
+    name: 'The Fantasy Footballers',
     priority: 1
-  },
-  {
-    id: 'UCjPVHKj7fSzOjcJWRgDDvdA',
-    name: 'Dynasty Nerds', 
-    priority: 2
   },
   {
     id: 'UCvFJ4NRKw5FnhTrMZRcnZFg',
@@ -30,14 +25,9 @@ const FANTASY_FOOTBALL_CHANNELS = [
     priority: 1
   },
   {
-    id: 'UC8gPjJI7Q4qVFOXpG7XvMtA',
-    name: 'The Fantasy Headliners',
-    priority: 2
-  },
-  {
-    id: 'UCQj8jxjfKgGhRfwdGjxQRxQ',
-    name: 'Fantasy Football Advice',
-    priority: 2
+    id: 'UC_TiMZzDkBKbLZnE7qCJp4A',
+    name: 'NFL',
+    priority: 1
   }
 ]
 
@@ -139,6 +129,80 @@ export async function GET(request: NextRequest) {
 
     const publishedAfter = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString()
     const allVideos: YouTubeContent[] = []
+
+    // First try general fantasy football search as fallback
+    try {
+      console.log('🔍 Trying general fantasy football search...')
+      const generalSearch = await youtube.search.list({
+        part: ['snippet'],
+        q: 'fantasy football 2025 rankings analysis',
+        type: ['video'],
+        order: 'relevance',
+        publishedAfter: publishedAfter,
+        maxResults: 15,
+        relevanceLanguage: 'en',
+        regionCode: 'US'
+      })
+
+      if (generalSearch.data.items && generalSearch.data.items.length > 0) {
+        console.log(`✅ Found ${generalSearch.data.items.length} videos from general search`)
+        
+        // Get video details
+        const videoIds = generalSearch.data.items.map((item) => item.id?.videoId).filter(Boolean) as string[]
+        
+        if (videoIds.length > 0) {
+          const videoDetails = await youtube.videos.list({
+            part: ['contentDetails', 'statistics'],
+            id: videoIds
+          })
+
+          // Transform to our content format
+          const transformedVideos: YouTubeContent[] = generalSearch.data.items.map((item, index: number) => {
+            const snippet = item.snippet
+            const videoDetail = videoDetails.data.items?.[index]
+            const videoId = item.id?.videoId
+            
+            if (!snippet || !videoId) {
+              return null
+            }
+            
+            const title = snippet.title || 'Untitled Video'
+            const description = snippet.description || ''
+            const category = categorizeVideo(title, description)
+            const tags = extractTags(title, description)
+
+            const thumbnail = snippet.thumbnails?.maxres?.url || 
+                             snippet.thumbnails?.high?.url || 
+                             snippet.thumbnails?.medium?.url || 
+                             snippet.thumbnails?.default?.url || 
+                             `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+
+            return {
+              id: `youtube_${videoId}`,
+              title,
+              shortDescription: description.slice(0, 200) + (description.length > 200 ? '...' : ''),
+              cover: thumbnail,
+              slug: `youtube-${videoId}`,
+              category,
+              publishDate: snippet.publishedAt || new Date().toISOString(),
+              source: 'youtube' as const,
+              tags,
+              videoId,
+              channelTitle: snippet.channelTitle || 'YouTube',
+              duration: videoDetail?.contentDetails?.duration || 'Unknown',
+              viewCount: parseInt(videoDetail?.statistics?.viewCount || '0'),
+              url: `https://www.youtube.com/watch?v=${videoId}`,
+              thumbnail: thumbnail,
+              creatorName: snippet.channelTitle || 'YouTube'
+            }
+          }).filter(Boolean) as YouTubeContent[]
+
+          allVideos.push(...transformedVideos)
+        }
+      }
+    } catch (error) {
+      console.error('❌ General search failed:', error)
+    }
 
     // Get videos from each priority channel
     for (const channel of FANTASY_FOOTBALL_CHANNELS) {

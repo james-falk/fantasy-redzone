@@ -185,10 +185,17 @@ const extractImage = async (item: any): Promise<string> => {
     return imageUrl
   }
   
-  // For ESPN articles, skip scraping and use reliable fallback
+  // For ESPN articles, try to extract image from RSS content first
   if (item.link && item.link.includes('espn.com')) {
-    console.log('🏈 Using ESPN fallback image (scraping disabled for reliability)')
-    // Use a reliable ESPN NFL image
+    // Try to find image in the RSS content itself
+    const rssImageMatch = content.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i)
+    if (rssImageMatch && rssImageMatch[1]) {
+      console.log('✅ Found ESPN image in RSS content:', rssImageMatch[1])
+      return rssImageMatch[1]
+    }
+    
+    console.log('🏈 Using ESPN themed fallback image')
+    // Use a reliable football-themed image
     return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format'
   }
   
@@ -201,8 +208,8 @@ const extractImage = async (item: any): Promise<string> => {
     'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&q=80&auto=format', // Football player
     'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=300&fit=crop&q=80&auto=format'  // Football action
   ]
-  const randomIndex = Math.floor(Math.random() * fallbackImages.length)
-  return fallbackImages[randomIndex]
+  // Use a consistent fallback instead of random to avoid hydration issues
+  return fallbackImages[0]
 }
 
 // Robust RSS parsing with error handling and multiple sources
