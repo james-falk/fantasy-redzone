@@ -28,6 +28,14 @@ export default async function Home() {
     newsLimit: 40 // Get more news articles
   })
 
+  // Debug logging
+  console.log('🔍 HOME PAGE DEBUG:')
+  console.log('Total content items:', content.length)
+  console.log('YouTube videos:', content.filter(item => item.source === 'youtube').length)
+  console.log('RSS articles:', content.filter(item => item.source === 'rss').length)
+  console.log('News articles:', content.filter(item => item.source === 'news').length)
+  console.log('First few items:', content.slice(0, 3).map(item => ({ id: item.id, title: item.title, source: item.source })))
+
   // Get the 5 most recent items for featured carousel
   const featuredContent = content
     .sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
