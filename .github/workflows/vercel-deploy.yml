@@ -20,16 +20,10 @@ jobs:
         node-version: '20'
         
     - name: Install dependencies
-      run: |
-        cd nextjs-directory-site-starter
-        npm ci
+      run: npm ci
         
     - name: Build application
-      run: |
-        cd nextjs-directory-site-starter
-        npm run build
+      run: npm run build
         
     - name: Lint check
-      run: |
-        cd nextjs-directory-site-starter
-        npm run lint
+      run: npm run lint
