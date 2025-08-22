@@ -6,45 +6,38 @@ const parser = new Parser();
 export async function GET() {
   try {
     const feeds = [
-      process.env.RSS_FEED_ESPN!,
-      process.env.RSS_FEED_FF_TODAY!,
-      process.env.RSS_FEED_YAHOO!,
+      process.env.RSS_FEED_ESPN,
+      process.env.RSS_FEED_FF_TODAY,
+      process.env.RSS_FEED_YAHOO,
     ].filter(Boolean);
 
-    const articles: Array<{
-      title: string;
-      link: string;
-      pubDate: string;
-      source: string;
-      description: string;
-      author: string;
-    }> = [];
+    console.log("[RSS Debug] Feed URLs:", feeds);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const articles: any[] = [];
 
     for (const feedUrl of feeds) {
       try {
-        console.log(`🏈 Fetching RSS from: ${feedUrl}`);
-        const feed = await parser.parseURL(feedUrl);
+        console.log("[RSS Debug] Fetching:", feedUrl);
+        const feed = await parser.parseURL(feedUrl!);
+        console.log(`[RSS Debug] ${feed.title} -> ${feed.items?.length || 0} items`);
         articles.push(
           ...feed.items.map((item) => ({
-            title: item.title || 'Untitled Article',
-            link: item.link || '',
-            pubDate: item.pubDate || new Date().toISOString(),
-            source: feed.title || 'Unknown Source',
-            description: item.contentSnippet || item.summary || '',
-            author: item.creator || item.author || 'Unknown'
+            title: item.title,
+            link: item.link,
+            pubDate: item.pubDate,
+            source: feed.title,
           }))
         );
-        console.log(`✅ Successfully fetched ${feed.items.length} articles from ${feed.title}`);
       } catch (feedError) {
-        console.error(`❌ Failed to fetch feed ${feedUrl}:`, feedError);
-        continue; // Skip failed feeds, don't break the whole process
+        console.error("[RSS Debug] Error parsing feed:", feedUrl, feedError);
       }
     }
 
-    console.log(`🎯 Total articles fetched: ${articles.length}`);
+    console.log("[RSS Debug] Total Articles:", articles.length);
     return NextResponse.json({ articles });
   } catch (err) {
-    console.error("RSS error:", err);
+    console.error("[RSS Debug] Route error:", err);
     return NextResponse.json({ error: "Failed to fetch RSS" }, { status: 500 });
   }
 } 
