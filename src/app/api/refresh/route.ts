@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     
     let successCount = 0
     let errorCount = 0
-    const detailedResults: Array<{source: string, status: 'success' | 'failed', error?: string, errorCode?: string, responseTime?: number, payload?: any}> = []
+    const detailedResults: Array<{source: string, status: 'success' | 'failed', error?: string, errorCode?: string, responseTime?: number, payload?: unknown}> = []
 
     for (let index = 0; index < results.length; index++) {
       const result = results[index]
@@ -164,9 +164,9 @@ export async function POST(request: NextRequest) {
               responseTime,
               ...(source === 'youtube' && { subscriptions: responseData.subscriptions }),
               ...(source === 'news' && { sources: responseData.sources }),
-              items: responseData.data?.slice(0, 5).map((item: any) => ({
+              items: responseData.data?.slice(0, 5).map((item: { id: string; title?: string; publishDate?: string; category?: string; channelTitle?: string; viewCount?: number }) => ({
                 id: item.id,
-                title: item.title?.substring(0, 100) + (item.title?.length > 100 ? '...' : ''),
+                title: item.title ? item.title.substring(0, 100) + (item.title.length > 100 ? '...' : '') : 'Untitled',
                 publishDate: item.publishDate,
                 category: item.category,
                 ...(source === 'youtube' && { 
@@ -247,10 +247,10 @@ export async function POST(request: NextRequest) {
           .reduce((acc, r) => acc + (r.responseTime || 0), 0) / 
           detailedResults.filter(r => r.responseTime).length || 0,
         totalContentItems: detailedResults
-          .filter(r => r.payload?.count)
-          .reduce((acc, r) => acc + (r.payload?.count || 0), 0),
+          .filter(r => r.payload && typeof r.payload === 'object' && 'count' in r.payload)
+          .reduce((acc, r) => acc + (r.payload && typeof r.payload === 'object' && 'count' in r.payload ? (r.payload.count as number) || 0 : 0), 0),
         cacheHitRate: detailedResults
-          .filter(r => r.payload?.cached)
+          .filter(r => r.payload && typeof r.payload === 'object' && 'cached' in r.payload && r.payload.cached)
           .length / successCount * 100 || 0
       }
     }, {

@@ -28,7 +28,7 @@ interface HealthData {
     status: number
     ok: boolean
     error?: string
-    [key: string]: any
+    [key: string]: unknown
   }>
   recommendations: string[]
 }

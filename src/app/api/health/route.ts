@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateRecommendations(envCheck: any, endpointTests: any[]): string[] {
+function generateRecommendations(envCheck: Record<string, unknown>, endpointTests: Array<{ endpoint: string; ok: boolean; tokenStatus?: string; [key: string]: unknown }>): string[] {
   const recommendations: string[] = []
   
   // Environment variable recommendations

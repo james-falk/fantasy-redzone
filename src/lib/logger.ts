@@ -7,7 +7,9 @@ export interface LogContext {
   operation?: string
   duration?: number
   timestamp?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
+  errorCode?: string
+  [key: string]: unknown
 }
 
 export interface ContentUpdatePayload {
@@ -18,7 +20,7 @@ export interface ContentUpdatePayload {
     title: string
     publishDate?: string
     category?: string
-    [key: string]: any
+    [key: string]: unknown
   }>
   cached?: boolean
   responseTime?: number
@@ -27,21 +29,27 @@ export interface ContentUpdatePayload {
 }
 
 class VercelLogger {
-  private formatMessage(level: string, message: string, context?: LogContext, payload?: any): string {
+  private formatMessage(level: string, message: string, context?: LogContext, payload?: unknown): string {
     const timestamp = new Date().toISOString()
-    const logData = {
+    const logData: Record<string, unknown> = {
       level,
       timestamp,
-      message,
-      ...(context && { context }),
-      ...(payload && { payload })
+      message
+    }
+    
+    if (context) {
+      logData.context = context
+    }
+    
+    if (payload && typeof payload === 'object' && payload !== null) {
+      logData.payload = payload
     }
     
     // For Vercel logs, we want clean, readable output
     return JSON.stringify(logData, null, 2)
   }
 
-  private log(level: string, message: string, context?: LogContext, payload?: any): void {
+  private log(level: string, message: string, context?: LogContext, payload?: unknown): void {
     const formattedMessage = this.formatMessage(level, message, context, payload)
     
     switch (level) {
@@ -74,17 +82,17 @@ class VercelLogger {
   }
 
   // Warning logs for degraded performance or non-critical issues
-  warn(message: string, context?: LogContext, payload?: any): void {
+  warn(message: string, context?: LogContext, payload?: unknown): void {
     this.log('WARN', message, context, payload)
   }
 
   // Info logs for successful operations and important events
-  info(message: string, context?: LogContext, payload?: any): void {
+  info(message: string, context?: LogContext, payload?: unknown): void {
     this.log('INFO', message, context, payload)
   }
 
   // Debug logs for detailed troubleshooting (only in development)
-  debug(message: string, context?: LogContext, payload?: any): void {
+  debug(message: string, context?: LogContext, payload?: unknown): void {
     if (process.env.NODE_ENV === 'development') {
       this.log('DEBUG', message, context, payload)
     }
@@ -105,7 +113,7 @@ class VercelLogger {
   }
 
   // Special method for API endpoint success logs
-  apiSuccess(endpoint: string, statusCode: number, context?: LogContext, responseData?: any): void {
+  apiSuccess(endpoint: string, statusCode: number, context?: LogContext, responseData?: unknown): void {
     const message = `✅ API ${endpoint} completed successfully`
     
     const enhancedContext = {
@@ -120,7 +128,7 @@ class VercelLogger {
   }
 
   // Special method for cron job success logs
-  cronSuccess(jobName: string, results: any, context?: LogContext): void {
+  cronSuccess(jobName: string, results: unknown, context?: LogContext): void {
     const message = `✅ Cron job '${jobName}' completed successfully`
     
     const enhancedContext = {
@@ -149,7 +157,7 @@ class VercelLogger {
   }
 
   // Method to create request context
-  createRequestContext(requestId?: string, additionalContext?: Record<string, any>): LogContext {
+  createRequestContext(requestId?: string, additionalContext?: Record<string, unknown>): LogContext {
     return {
       requestId: requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date().toISOString(),
@@ -187,6 +195,3 @@ class VercelLogger {
 
 // Export singleton instance
 export const logger = new VercelLogger()
-
-// Export types for use in other files
-export type { LogContext, ContentUpdatePayload }
