@@ -32,37 +32,10 @@ export const clearStaticContentCache = () => {
   staticContentCache = null
 }
 
-// Function to get all static courses (emergency fallback content)
+// Function to get all static courses - REMOVED fallback content
 export const getStaticCourses = async (): Promise<Course[]> => {
-  // Emergency fallback content to ensure site never shows empty
-  return [
-    {
-      id: 'static_emergency_1',
-      title: 'Fantasy Football Weekly Rankings & Analysis',
-      shortDescription: 'Get the latest fantasy football rankings, start/sit advice, and player analysis to dominate your leagues.',
-      cover: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format',
-      slug: 'fantasy-football-weekly-rankings',
-      category: 'Rankings',
-      publishDate: new Date().toISOString(),
-      source: 'static' as const,
-      tags: ['Rankings', 'Analysis', 'Weekly'],
-      duration: '15 min read',
-      features: ['Player Rankings', 'Start/Sit Advice', 'Matchup Analysis']
-    },
-    {
-      id: 'static_emergency_2',
-      title: 'Waiver Wire Pickups & Sleeper Players',
-      shortDescription: 'Discover the best waiver wire additions and sleeper picks that could win your fantasy football league.',
-      cover: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=400&h=300&fit=crop&q=80&auto=format',
-      slug: 'waiver-wire-pickups-sleepers',
-      category: 'Waiver Wire',
-      publishDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      source: 'static' as const,
-      tags: ['Waiver Wire', 'Sleepers', 'Pickups'],
-      duration: '10 min read',
-      features: ['Weekly Pickups', 'Sleeper Analysis', 'Drop Candidates']
-    }
-  ]
+  // No static content - only real RSS content should be displayed
+  return []
 }
 
 // Function to fetch YouTube content using simple API key approach (recommended)
@@ -392,46 +365,8 @@ export const getAllContent = async (options?: {
   } catch (error) {
     console.error('Error fetching all content:', error)
     
-    // Fallback to static content + emergency content
-    const staticContent = await getStaticCourses()
-    const emergencyContent = [
-      {
-        id: 'emergency_youtube_1',
-        title: 'Fantasy Football Week 1 Rankings - Top Picks & Sleepers',
-        shortDescription: 'Get ready for Week 1 with our top fantasy football rankings, sleeper picks, and must-start players.',
-        cover: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format',
-        slug: 'fantasy-football-week-1-rankings-emergency',
-        category: 'Rankings',
-        publishDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        source: 'youtube' as const,
-        tags: ['Rankings', 'PPR', 'Start/Sit'],
-        videoId: 'emergency_1',
-        channelTitle: 'Fantasy Football Today',
-        duration: 'PT15M30S',
-        viewCount: 125000,
-        url: 'https://youtube.com/watch?v=emergency1',
-        thumbnail: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format',
-        creatorName: 'Fantasy Football Today'
-      },
-      {
-        id: 'emergency_rss_1',
-        title: 'NFL Trade Deadline: Impact on Fantasy Football',
-        shortDescription: 'Analysis of recent NFL trades and how they affect fantasy football player values and rankings.',
-        cover: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=400&h=300&fit=crop&q=80&auto=format',
-        slug: 'nfl-trade-deadline-fantasy-impact',
-        category: 'News',
-        publishDate: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-        source: 'rss' as const,
-        tags: ['News', 'Trades', 'Analysis'],
-        author: 'ESPN Fantasy',
-        url: 'https://espn.com/fantasy/football/story/_/id/emergency',
-        content: 'Emergency fallback content',
-        pubDate: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-        sourceName: 'ESPN Fantasy'
-      }
-    ]
-    
-    return [...staticContent, ...emergencyContent]
+    // Return empty array - no fallback content, only show real data
+    return []
   }
 }
 

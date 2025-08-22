@@ -3,34 +3,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import NodeCache from 'node-cache'
 import { RSSContent, APIResponse } from '@/types/content'
 
-// Initialize cache with 30-minute TTL for faster updates
-const cache = new NodeCache({ stdTTL: 30 * 60 })
+// Initialize cache with 15-minute TTL for frequent updates
+const cache = new NodeCache({ stdTTL: 15 * 60 })
 
 const parser = new Parser({
-  timeout: 10000,
+  timeout: 15000,
   headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/rss+xml, application/xml, text/xml',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control': 'no-cache'
   }
 })
 
-// Working RSS feed sources (tested and verified)
-const RSS_SOURCES = [
-  {
-    name: 'ESPN NFL',
-    url: 'https://www.espn.com/espn/rss/nfl/news',
-    active: true
-  },
-  {
-    name: 'NFL.com',
-    url: 'http://www.nfl.com/rss/rsslanding?searchType=news&tags=news',
-    active: true
-  },
-  {
-    name: 'Pro Football Talk',
-    url: 'https://profootballtalk.nbcsports.com/feed/',
-    active: true
-  }
-]
+// ONLY ESPN Fantasy RSS - the most reliable fantasy football source
+const ESPN_FANTASY_RSS_URL = 'https://www.espn.com/espn/rss/fantasy/news'
 
 // Mapping for fantasy football categories based on article titles/content
 const categorizeArticle = (title: string, content: string): string => {
@@ -124,32 +111,32 @@ const extractImage = (item: { enclosure?: { url: string; type?: string }; conten
   return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format'
 }
 
-// Simple RSS parsing function
-async function parseRSSFeed(source: typeof RSS_SOURCES[0]): Promise<RSSContent[]> {
+// Parse ESPN Fantasy RSS feed specifically
+async function parseESPNFantasyRSS(): Promise<RSSContent[]> {
   try {
-    console.log(`🔍 Parsing RSS from ${source.name}: ${source.url}`)
+    console.log(`🏈 Parsing ESPN Fantasy RSS: ${ESPN_FANTASY_RSS_URL}`)
     
-    const feed = await parser.parseURL(source.url)
+    const feed = await parser.parseURL(ESPN_FANTASY_RSS_URL)
     
     if (!feed.items || feed.items.length === 0) {
-      console.log(`❌ No items found in ${source.name} RSS feed`)
+      console.error('❌ No items found in ESPN Fantasy RSS feed')
       return []
     }
 
-    console.log(`✅ Found ${feed.items.length} items from ${source.name}`)
+    console.log(`✅ Found ${feed.items.length} ESPN Fantasy articles`)
 
-    // Transform to our content format
-    const articles = feed.items.slice(0, 20).map((item: { title?: string; content?: string; description?: string; summary?: string; pubDate?: string; isoDate?: string; guid?: string; creator?: string; author?: string; link?: string; enclosure?: { url: string; type?: string } }) => {
-      const title = item.title || 'Untitled Article'
+    // Transform ESPN articles to our content format
+    const articles = feed.items.slice(0, 25).map((item: { title?: string; content?: string; description?: string; summary?: string; pubDate?: string; isoDate?: string; guid?: string; creator?: string; author?: string; link?: string; enclosure?: { url: string; type?: string } }) => {
+      const title = item.title || 'ESPN Fantasy Article'
       const content = item.content || item.description || item.summary || ''
       const shortDescription = content.replace(/<[^>]*>/g, '').slice(0, 200) + (content.length > 200 ? '...' : '')
       const pubDate = item.pubDate || item.isoDate || new Date().toISOString()
       
-      // Extract image synchronously for simplicity
+      // Extract image for article
       const cover = extractImage(item)
       
       return {
-        id: `rss_${source.name.toLowerCase().replace(/\s+/g, '_')}_${item.guid || generateSlug(title, pubDate)}`,
+        id: `espn_fantasy_${item.guid || generateSlug(title, pubDate)}`,
         title,
         shortDescription,
         cover,
@@ -158,126 +145,83 @@ async function parseRSSFeed(source: typeof RSS_SOURCES[0]): Promise<RSSContent[]
         publishDate: pubDate,
         source: 'rss' as const,
         tags: extractTags(title, content),
-        author: item.creator || item.author || source.name,
+        author: item.creator || item.author || 'ESPN Fantasy',
         url: item.link || '',
         content,
         pubDate,
-        sourceName: source.name
+        sourceName: 'ESPN Fantasy'
       }
     })
 
     return articles
 
   } catch (error) {
-    console.error(`❌ Failed to parse RSS from ${source.name}:`, error)
-    return []
+    console.error(`❌ Failed to parse ESPN Fantasy RSS:`, error)
+    throw error // Re-throw to handle in main function
   }
 }
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const limit = parseInt(searchParams.get('limit') || '20')
-  const specificUrl = searchParams.get('url')
   
   try {
-    console.log('📰 RSS API called with limit:', limit)
+    console.log('🏈 ESPN Fantasy RSS API called with limit:', limit)
     
-    // Create cache key
-    const cacheKey = `rss_all_sources_${limit}`
+    // Create cache key for ESPN Fantasy specifically
+    const cacheKey = `espn_fantasy_rss_${limit}`
     
     // Check cache first
     const cachedData = cache.get<RSSContent[]>(cacheKey)
     if (cachedData && cachedData.length > 0) {
-      console.log('✅ Returning cached RSS data:', cachedData.length, 'items')
+      console.log('✅ Returning cached ESPN Fantasy data:', cachedData.length, 'items')
       return NextResponse.json({
         success: true,
         data: cachedData.slice(0, limit),
         cached: true,
-        total: cachedData.length
+        total: cachedData.length,
+        source: 'ESPN Fantasy'
       } as APIResponse<RSSContent[]>)
     }
 
-    let allArticles: RSSContent[] = []
-
-    if (specificUrl) {
-      // Parse specific URL if provided
-      console.log('🔍 Parsing specific RSS URL:', specificUrl)
-      try {
-        const feed = await parser.parseURL(specificUrl)
-        if (feed.items && feed.items.length > 0) {
-          const articles = feed.items.slice(0, limit).map((item: { title?: string; content?: string; description?: string; summary?: string; pubDate?: string; isoDate?: string; guid?: string; creator?: string; author?: string; link?: string; enclosure?: { url: string; type?: string } }) => {
-            const title = item.title || 'Untitled Article'
-            const content = item.content || item.description || item.summary || ''
-            const shortDescription = content.replace(/<[^>]*>/g, '').slice(0, 200) + (content.length > 200 ? '...' : '')
-            const pubDate = item.pubDate || item.isoDate || new Date().toISOString()
-            
-            return {
-              id: `rss_custom_${item.guid || generateSlug(title, pubDate)}`,
-              title,
-              shortDescription,
-              cover: extractImage(item),
-              slug: generateSlug(title, pubDate),
-              category: categorizeArticle(title, content),
-              publishDate: pubDate,
-              source: 'rss' as const,
-              tags: extractTags(title, content),
-              author: item.creator || item.author || 'Unknown',
-              url: item.link || '',
-              content,
-              pubDate,
-              sourceName: 'Custom RSS'
-            }
-          })
-          allArticles = articles
-        }
-      } catch (error) {
-        console.error('❌ Failed to parse specific RSS URL:', error)
-      }
-    } else {
-      // Parse all active sources
-      const activeFeeds = RSS_SOURCES.filter(source => source.active)
-      console.log('🔍 Parsing', activeFeeds.length, 'active RSS sources')
-      
-      // Parse feeds in parallel but with error handling
-      const feedPromises = activeFeeds.map(source => parseRSSFeed(source))
-      const feedResults = await Promise.allSettled(feedPromises)
-      
-      // Combine successful results
-      feedResults.forEach((result, index) => {
-        if (result.status === 'fulfilled' && result.value.length > 0) {
-          allArticles.push(...result.value)
-          console.log(`✅ Added ${result.value.length} articles from ${activeFeeds[index].name}`)
-        } else {
-          console.log(`❌ Failed to get articles from ${activeFeeds[index].name}`)
-        }
-      })
+    // Parse ESPN Fantasy RSS feed
+    const articles = await parseESPNFantasyRSS()
+    
+    if (articles.length === 0) {
+      console.error('❌ No articles retrieved from ESPN Fantasy')
+      return NextResponse.json({
+        success: false,
+        error: 'No articles found in ESPN Fantasy RSS feed',
+        data: [],
+        source: 'ESPN Fantasy'
+      } as APIResponse<RSSContent[]>, { status: 503 })
     }
 
     // Sort by publish date (newest first) and limit results
-    allArticles.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
-    const limitedArticles = allArticles.slice(0, limit)
+    articles.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
+    const limitedArticles = articles.slice(0, limit)
 
     // Cache the results
-    if (allArticles.length > 0) {
-      cache.set(cacheKey, allArticles)
-    }
+    cache.set(cacheKey, articles)
 
-    console.log(`✅ RSS API returning ${limitedArticles.length} articles (${allArticles.length} total)`)
+    console.log(`✅ ESPN Fantasy RSS API returning ${limitedArticles.length} articles (${articles.length} total)`)
 
     return NextResponse.json({
       success: true,
       data: limitedArticles,
       cached: false,
-      total: allArticles.length
+      total: articles.length,
+      source: 'ESPN Fantasy'
     } as APIResponse<RSSContent[]>)
 
   } catch (error) {
-    console.error('❌ RSS API Error:', error)
+    console.error('❌ ESPN Fantasy RSS API Error:', error)
     
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch RSS content',
-      data: []
+      error: error instanceof Error ? error.message : 'Failed to fetch ESPN Fantasy RSS content',
+      data: [],
+      source: 'ESPN Fantasy'
     } as APIResponse<RSSContent[]>, { status: 500 })
   }
 } 
