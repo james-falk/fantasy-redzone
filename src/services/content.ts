@@ -239,7 +239,7 @@ export const getAllContent = async (options?: {
     const staticPromise = getStaticCourses()
     const youtubePromise = includeYouTube ? getYouTubeContent(youtubeMaxResults, subscriptionsDaysBack) : Promise.resolve([])
     const rssPromise = includeRSS ? getRSSContent(undefined, rssLimit) : Promise.resolve([])
-    const subscriptionsPromise = includeSubscriptions ? getYouTubeSubscriptions(subscriptionsMaxResults, subscriptionsDaysBack) : Promise.resolve([])
+    const subscriptionsPromise = Promise.resolve([]) // OAuth subscriptions disabled - using API key approach
     const newsPromise = includeNews ? getNewsContent(newsLimit) : Promise.resolve([])
 
     const [staticContent, youtubeContent, rssContent, subscriptionContent, newsContent] = await Promise.all([

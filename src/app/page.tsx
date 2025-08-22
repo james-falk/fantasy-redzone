@@ -19,7 +19,7 @@ export default async function Home() {
   const content = await getAllContent({
     includeYouTube: true, // ✅ Enable YouTube content using simple API key approach
     includeRSS: true, // ✅ Enable RSS content for articles
-    includeSubscriptions: false, // ❌ Disable complex OAuth subscriptions
+    includeSubscriptions: false, // ❌ OAuth subscriptions completely disabled
     includeNews: true, // ✅ Enable news articles
     youtubeMaxResults: 30, // Get more YouTube videos from curated channels
     rssLimit: 25, // Get more RSS articles

@@ -185,16 +185,11 @@ const extractImage = async (item: any): Promise<string> => {
     return imageUrl
   }
   
-  // For ESPN articles, try to scrape the actual article page
+  // For ESPN articles, skip scraping and use reliable fallback
   if (item.link && item.link.includes('espn.com')) {
-    const scrapedImage = await extractImageFromESPNPage(item.link)
-    if (scrapedImage) {
-      return scrapedImage
-    }
-    
-    console.log('🏈 Using ESPN fallback image')
-    // Use ESPN's default NFL image
-    return 'https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/default.png&w=350&h=254'
+    console.log('🏈 Using ESPN fallback image (scraping disabled for reliability)')
+    // Use a reliable ESPN NFL image
+    return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format'
   }
   
   console.log('❌ No image found, using fallback')
