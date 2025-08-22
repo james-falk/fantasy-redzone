@@ -2,7 +2,11 @@ export function formatDate(dateString: string): string {
   const date = new Date(dateString);
 
   const day = date.getDate();
-  const month = date.toLocaleString("default", { month: "long" });
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const month = months[date.getMonth()];
   const year = date.getFullYear();
 
   const daySuffix = getDaySuffix(day);

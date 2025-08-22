@@ -44,7 +44,7 @@ const ProductCard: FC<ProductCardProps> = ({ post, isFeatured = false }) => {
     switch (source) {
       case 'youtube':
         const ytContent = post as YouTubeContent
-        return `${ytContent.channelTitle} • ${ytContent.viewCount.toLocaleString()} views`
+        return `${ytContent.channelTitle} • ${ytContent.viewCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} views`
       case 'rss':
         const rssContent = post as RSSContent
         return rssContent.sourceName || rssContent.author || 'RSS Article'
