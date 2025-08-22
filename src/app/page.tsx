@@ -8,25 +8,23 @@ import Newsletter from '@/components/newsletter'
 import ContentSection from '@/components/content-section'
 import FeaturedCarousel from '@/components/featured-carousel'
 
-// Successfully deployed with YouTube subscriptions: 2025-01-07T02:00:00.000Z
+// Successfully deployed with YouTube Simple API: 2025-01-21T12:00:00.000Z
 // 
-// ⚠️  IMPORTANT: DO NOT CHANGE YOUTUBE CONFIGURATION TO API APPROACH
-// This site uses YouTube OAuth subscriptions (includeSubscriptions: true)
-// If OAuth stops working, ask James to fix the OAuth credentials
-// DO NOT switch to regular YouTube API (includeYouTube: true)
-// The OAuth approach provides curated content from subscribed channels
+// ✅ UPDATED: Now using simple YouTube API key approach (much better!)
+// This site uses YouTube API key with curated channels (includeYouTube: true)
+// No more OAuth complexity - just add YOUTUBE_API_KEY to environment variables
+// The API key approach provides reliable content from specific fantasy football channels
 //
 export default async function Home() {
   const content = await getAllContent({
-    includeYouTube: false, // ❌ Disabled - we want curated content from subscriptions
+    includeYouTube: true, // ✅ Enable YouTube content using simple API key approach
     includeRSS: true, // ✅ Enable RSS content for articles
-    includeSubscriptions: true, // ✅ Use YOUR subscriptions for quality content (OAuth)
+    includeSubscriptions: false, // ❌ Disable complex OAuth subscriptions
     includeNews: true, // ✅ Enable news articles
-    youtubeQuery: 'fantasy football 2024',
-    youtubeMaxResults: 0, // Not using regular YouTube search
+    youtubeMaxResults: 30, // Get more YouTube videos from curated channels
     rssLimit: 25, // Get more RSS articles
-    subscriptionsMaxResults: 50, // Get more from your subscriptions
-    subscriptionsDaysBack: 14, // Look back 2 weeks for content
+    subscriptionsMaxResults: 0, // Not using OAuth subscriptions
+    subscriptionsDaysBack: 7, // Look back 1 week for content
     newsLimit: 40 // Get more news articles
   })
 

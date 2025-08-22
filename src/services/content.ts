@@ -38,8 +38,44 @@ export const getStaticCourses = async (): Promise<Course[]> => {
   return []
 }
 
-// Function to fetch YouTube content
+// Function to fetch YouTube content using simple API key approach (recommended)
 export const getYouTubeContent = async (
+  maxResults: number = 30,
+  daysBack: number = 7
+): Promise<YouTubeContent[]> => {
+  try {
+    const params = new URLSearchParams({
+      maxResults: maxResults.toString(),
+      daysBack: daysBack.toString()
+    })
+    
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const response = await fetch(`${baseUrl}/api/youtube-simple?${params}`)
+    
+    if (!response.ok) {
+      console.error('YouTube Simple API HTTP Error:', response.status, response.statusText)
+      return []
+    }
+    
+    const result: APIResponse<YouTubeContent[]> = await response.json()
+    
+    if (result.success && result.data) {
+      return result.data
+    }
+    
+    console.error('YouTube Simple API Error:', result.error)
+    if (result.instructions) {
+      console.log('📝 YouTube Setup Instructions:', result.instructions)
+    }
+    return []
+  } catch (error) {
+    console.error('Error fetching YouTube content:', error)
+    return []
+  }
+}
+
+// Legacy function for backward compatibility
+export const getYouTubeContentLegacy = async (
   query: string = 'fantasy football',
   maxResults: number = 20,
   channelId?: string
@@ -201,7 +237,7 @@ export const getAllContent = async (options?: {
   try {
     // Fetch all content separately to handle different types
     const staticPromise = getStaticCourses()
-    const youtubePromise = includeYouTube ? getYouTubeContent(youtubeQuery, youtubeMaxResults) : Promise.resolve([])
+    const youtubePromise = includeYouTube ? getYouTubeContent(youtubeMaxResults, subscriptionsDaysBack) : Promise.resolve([])
     const rssPromise = includeRSS ? getRSSContent(undefined, rssLimit) : Promise.resolve([])
     const subscriptionsPromise = includeSubscriptions ? getYouTubeSubscriptions(subscriptionsMaxResults, subscriptionsDaysBack) : Promise.resolve([])
     const newsPromise = includeNews ? getNewsContent(newsLimit) : Promise.resolve([])
