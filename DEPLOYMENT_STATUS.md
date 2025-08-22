@@ -20,12 +20,12 @@ This file was created to trigger a Vercel deployment and test the GitHub → Ver
 
 ## Next Steps After Deployment
 1. Add environment variables in Vercel:
-   - `CRON_SECRET=7f318ae817b9fa04a07afc849fbadd46f87b503afb7124cf9ef981eccdd3d9f8`
-   - `REFRESH_TOKEN=ede22ac819e60a9985a8fa7e5d88cd19ee6db92f8315ef735d5e3b2ddea8c17f`
+   - `CRON_SECRET=<generate-secure-random-secret>`
+   - `REFRESH_TOKEN=<generate-secure-refresh-token>`
    - `NEWS_SOURCES=espn-fantasy,fantasypros,nfl-fantasy,yahoo-fantasy,rotoworld`
 
 2. Test refresh endpoint:
-   - `https://your-site.vercel.app/api/cron/daily?secret=7f318ae817b9fa04a07afc849fbadd46f87b503afb7124cf9ef981eccdd3d9f8`
+   - `https://your-site.vercel.app/api/cron/daily?secret=<your-cron-secret>`
 
 ## Deployment Verification
 If you see this file in your deployed site, the GitHub → Vercel pipeline is working correctly!
