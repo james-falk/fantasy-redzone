@@ -64,7 +64,7 @@ export const getYouTubeContent = async (
     }
     
     console.error('YouTube Simple API Error:', result.error)
-    if (result.instructions) {
+    if ('instructions' in result && result.instructions) {
       console.log('📝 YouTube Setup Instructions:', result.instructions)
     }
     return []

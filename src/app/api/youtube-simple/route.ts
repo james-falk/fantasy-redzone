@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Get video IDs for detailed info
-        const videoIds = searchResponse.data.items.map((item: any) => item.id?.videoId).filter(Boolean)
+        const videoIds = searchResponse.data.items?.map((item) => item.id?.videoId).filter(Boolean) || []
         
         if (videoIds.length === 0) continue
 
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
         })
 
         // Transform to our content format
-        const transformedVideos: YouTubeContent[] = searchResponse.data.items.map((item: any, index: number) => {
+        const transformedVideos: YouTubeContent[] = (searchResponse.data.items || []).map((item, index: number) => {
           const snippet = item.snippet
           const videoDetail = videoDetails.data.items?.[index]
           const videoId = item.id?.videoId
@@ -244,7 +244,6 @@ export async function GET(request: NextRequest) {
       count: sortedVideos.length,
       cached: false,
       responseTime: duration,
-      channels: FANTASY_FOOTBALL_CHANNELS.length,
       items: sortedVideos.slice(0, 5).map(video => ({
         id: video.id,
         title: video.title.substring(0, 100) + (video.title.length > 100 ? '...' : ''),

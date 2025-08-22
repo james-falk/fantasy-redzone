@@ -63,7 +63,7 @@ export default function ContentFilterComponent({ content, onFilterChange, classN
     }
 
     onFilterChange(filtered)
-  }, [content, filter, searchTerm]) // Removed onFilterChange from dependencies
+  }, [content, filter, searchTerm, onFilterChange])
 
   const handleCategoryChange = (category: string) => {
     setFilter(prev => ({
