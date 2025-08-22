@@ -2,6 +2,7 @@ import Parser from 'rss-parser'
 import { NextRequest, NextResponse } from 'next/server'
 import NodeCache from 'node-cache'
 import { RSSContent, APIResponse } from '@/types/content'
+import { logger } from '@/lib/logger'
 
 // Initialize cache with 15-minute TTL
 const cache = new NodeCache({ stdTTL: 15 * 60 })
@@ -14,8 +15,31 @@ const parser = new Parser({
       ['description', 'description'],
       ['content:encoded', 'content']
     ]
+  },
+  timeout: 10000, // 10 second timeout
+  headers: {
+    'User-Agent': 'Fantasy Red Zone RSS Reader/1.0'
   }
 })
+
+// RSS feed sources with fallbacks
+const RSS_SOURCES = [
+  {
+    name: 'ESPN Fantasy',
+    url: 'https://www.espn.com/espn/rss/nfl/news',
+    fallbackUrl: 'https://www.espn.com/espn/rss/news'
+  },
+  {
+    name: 'FantasyPros',
+    url: 'https://www.fantasypros.com/rss/nfl/news.xml',
+    fallbackUrl: 'https://www.fantasypros.com/rss/news.xml'
+  },
+  {
+    name: 'NFL.com',
+    url: 'https://www.nfl.com/feeds/rss/news',
+    fallbackUrl: 'https://www.nfl.com/rss/news'
+  }
+]
 
 // Mapping for fantasy football categories based on article titles/content
 const categorizeArticle = (title: string, content: string): string => {
@@ -186,7 +210,123 @@ const extractImage = async (item: any): Promise<string> => {
   return fallbackImages[randomIndex]
 }
 
+// Robust RSS parsing with error handling and multiple sources
+async function parseRSSWithFallback(source: typeof RSS_SOURCES[0], requestId: string): Promise<RSSContent[]> {
+  const urls = [source.url, source.fallbackUrl].filter(Boolean)
+  
+  for (const url of urls) {
+    try {
+      logger.info(`🔍 Attempting to parse RSS from ${source.name}`, {
+        requestId,
+        operation: 'rss_parse',
+        source: source.name,
+        url
+      })
+
+      // First, fetch the content to validate it
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Fantasy Red Zone RSS Reader/1.0',
+          'Accept': 'application/rss+xml, application/xml, text/xml'
+        },
+        signal: AbortSignal.timeout(10000)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const contentType = response.headers.get('content-type') || ''
+      const text = await response.text()
+      
+      // Check if the response looks like XML/RSS
+      if (!text.trim().startsWith('<?xml') && !text.trim().startsWith('<rss') && !text.trim().startsWith('<feed')) {
+        throw new Error(`Invalid RSS format - content type: ${contentType}, starts with: ${text.substring(0, 100)}`)
+      }
+
+      // Clean the text to remove any non-XML content before parsing
+      const cleanedText = text.replace(/^[^<]*(<\?xml|<rss|<feed)/, '$1')
+      
+      // Parse the cleaned RSS
+      const feed = await parser.parseString(cleanedText)
+      
+      if (!feed.items || feed.items.length === 0) {
+        throw new Error('No items found in RSS feed')
+      }
+
+      logger.info(`✅ Successfully parsed ${feed.items.length} items from ${source.name}`, {
+        requestId,
+        operation: 'rss_parse_success',
+        source: source.name,
+        url,
+        itemCount: feed.items.length
+      })
+
+      // Transform to our content format
+      const articles = await Promise.all(
+        feed.items.slice(0, 25).map(async (item: { title?: string; content?: string; description?: string; pubDate?: string; guid?: string; creator?: string; author?: string; link?: string }) => {
+          const title = item.title || 'Untitled Article'
+          const content = item.content || item.description || ''
+          const shortDescription = content.replace(/<[^>]*>/g, '').slice(0, 200)
+          const pubDate = item.pubDate || new Date().toISOString()
+          
+          // Extract image
+          const cover = await extractImage(item)
+          
+          return {
+            id: `rss_${source.name.toLowerCase().replace(/\s+/g, '_')}_${item.guid || generateSlug(title, pubDate)}`,
+            title,
+            shortDescription,
+            cover,
+            slug: generateSlug(title, pubDate),
+            category: categorizeArticle(title, content),
+            publishDate: pubDate,
+            source: 'rss' as const,
+            tags: extractTags(title, content),
+            author: item.creator || item.author || source.name,
+            url: item.link || '',
+            content,
+            pubDate,
+            sourceName: source.name // Add source attribution
+          }
+        })
+      )
+
+      return articles
+
+    } catch (error) {
+      logger.warn(`Failed to parse RSS from ${url}`, {
+        requestId,
+        operation: 'rss_parse_failed',
+        source: source.name,
+        url,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+      
+      // Continue to next URL if available
+      continue
+    }
+  }
+  
+  // If all URLs failed
+  logger.error(`All RSS URLs failed for ${source.name}`, new Error('All RSS parsing attempts failed'), {
+    requestId,
+    operation: 'rss_parse_all_failed',
+    source: source.name,
+    attemptedUrls: urls
+  })
+  
+  return []
+}
+
 export async function GET(request: NextRequest) {
+  const requestId = `rss_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const startTime = Date.now()
+  const context = logger.createRequestContext(requestId, {
+    operation: 'rss_fetch',
+    userAgent: request.headers.get('user-agent')
+  })
+  
   const { searchParams } = new URL(request.url)
   const feedUrl = searchParams.get('url') || process.env.RSS_FEED_URL || 'https://www.espn.com/espn/rss/nfl/news'
   

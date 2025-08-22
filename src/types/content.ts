@@ -37,6 +37,7 @@ export interface RSSContent extends BaseContent {
   url: string
   content?: string
   pubDate: string
+  sourceName?: string // News outlet name (e.g., "ESPN", "FantasyPros")
 }
 
 // Import news types

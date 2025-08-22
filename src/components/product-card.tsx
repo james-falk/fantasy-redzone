@@ -47,10 +47,39 @@ const ProductCard: FC<ProductCardProps> = ({ post, isFeatured = false }) => {
         return `${ytContent.channelTitle} • ${ytContent.viewCount.toLocaleString()} views`
       case 'rss':
         const rssContent = post as RSSContent
-        return rssContent.author || 'Article'
+        return rssContent.sourceName || rssContent.author || 'RSS Article'
+      case 'news':
+        const newsContent = post as { sourceName?: string } // NewsArticle type
+        return newsContent.sourceName || 'News'
       case 'static':
       default:
         return 'Course'
+    }
+  }
+
+  // Get source attribution tag
+  const getSourceTag = (): { label: string, color: string } | null => {
+    switch (source) {
+      case 'youtube':
+        const ytContent = post as YouTubeContent
+        return { 
+          label: ytContent.channelTitle || 'YouTube', 
+          color: 'bg-red-100 text-red-800 border-red-200' 
+        }
+      case 'rss':
+        const rssContent = post as RSSContent
+        return rssContent.sourceName ? { 
+          label: rssContent.sourceName, 
+          color: 'bg-green-100 text-green-800 border-green-200' 
+        } : null
+      case 'news':
+        const newsContent = post as { sourceName?: string } // NewsArticle type
+        return newsContent.sourceName ? { 
+          label: newsContent.sourceName, 
+          color: 'bg-blue-100 text-blue-800 border-blue-200' 
+        } : null
+      default:
+        return null
     }
   }
 
@@ -103,6 +132,15 @@ const ProductCard: FC<ProductCardProps> = ({ post, isFeatured = false }) => {
           <span className="w-fit rounded-lg redzone-gradient-intense px-3 py-1 text-sm font-bold text-white shadow-lg">
             {category}
           </span>
+          {/* Source attribution tag */}
+          {(() => {
+            const sourceTag = getSourceTag()
+            return sourceTag ? (
+              <span className={`w-fit rounded-lg px-2 py-1 text-xs font-medium border ${sourceTag.color}`}>
+                {sourceTag.label}
+              </span>
+            ) : null
+          })()}
           <p className="text-sm font-semibold text-gray-400">
             {formatDate(publishDate)}
           </p>
