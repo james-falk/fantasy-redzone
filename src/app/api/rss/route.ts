@@ -4,8 +4,8 @@ import NodeCache from 'node-cache'
 import { RSSContent, APIResponse } from '@/types/content'
 import { logger } from '@/lib/logger'
 
-// Initialize cache with 15-minute TTL
-const cache = new NodeCache({ stdTTL: 15 * 60 })
+// Initialize cache with 2-hour TTL to reduce server load
+const cache = new NodeCache({ stdTTL: 2 * 60 * 60 })
 
 const parser = new Parser({
   customFields: {

@@ -84,6 +84,24 @@ export const getYouTubeContent = async (
     if ('instructions' in result && result.instructions) {
       console.log('📝 YouTube Setup Instructions:', result.instructions)
     }
+    
+    // If quota exceeded, try fallback content
+    if (result.error?.includes('quota')) {
+      console.log('🔄 Quota exceeded, attempting to serve fallback content...')
+      try {
+        const fallbackResponse = await fetch(`${baseUrl}/api/youtube-quota-fallback`)
+        if (fallbackResponse.ok) {
+          const fallbackResult = await fallbackResponse.json()
+          if (fallbackResult.success && fallbackResult.data) {
+            console.log('✅ Serving fallback YouTube content due to quota limits')
+            return fallbackResult.data
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Failed to fetch fallback content:', fallbackError)
+      }
+    }
+    
     return []
   } catch (error) {
     console.error('Error fetching YouTube content:', error)

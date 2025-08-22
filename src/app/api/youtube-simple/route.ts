@@ -4,8 +4,8 @@ import NodeCache from 'node-cache'
 import { YouTubeContent, APIResponse } from '@/types/content'
 import { logger } from '@/lib/logger'
 
-// Initialize cache with 30-minute TTL
-const cache = new NodeCache({ stdTTL: 30 * 60 })
+// Initialize cache with 6-hour TTL to reduce API quota usage
+const cache = new NodeCache({ stdTTL: 6 * 60 * 60 })
 
 // Top Fantasy Football YouTube Channels (verified IDs)
 const FANTASY_FOOTBALL_CHANNELS = [
