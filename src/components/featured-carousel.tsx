@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Content, YouTubeContent, RSSContent } from '@/types/content'
 import { NewsArticle } from '@/types/news'
@@ -12,6 +12,12 @@ interface FeaturedCarouselProps {
 
 export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isClient, setIsClient] = useState(false)
+
+  // Ensure client-side rendering for interactive features
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   if (!featuredContent || featuredContent.length === 0) {
     return null
@@ -73,21 +79,26 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
       {/* Carousel Container */}
       <div className="relative">
         {/* Navigation Arrows */}
-        <button
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
-          aria-label="Previous featured content"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
+        {/* Navigation Buttons - Only show on client */}
+        {isClient && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+              aria-label="Previous featured content"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
 
-        <button
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
-          aria-label="Next featured content"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+              aria-label="Next featured content"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </>
+        )}
 
         {/* Carousel Track */}
         <div className="relative">
@@ -111,7 +122,7 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
                   }`}
                 >
                   <div
-                    onClick={() => {
+                    onClick={isClient ? () => {
                       if (isCurrent) {
                         window.open(getContentLink(content), isExternal ? '_blank' : '_self')
                       } else if (position === 0) {
@@ -121,8 +132,8 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
                         // Clicked right item, go to next
                         nextSlide()
                       }
-                    }}
-                    className="block group cursor-pointer"
+                    } : undefined}
+                    className={`block group ${isClient ? 'cursor-pointer' : ''}`}
                   >
                     <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:scale-[1.02] ${
                       isCurrent 

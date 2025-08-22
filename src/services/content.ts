@@ -49,17 +49,34 @@ export const getYouTubeContent = async (
       daysBack: daysBack.toString()
     })
     
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // Build the correct base URL for the current environment
+    const baseUrl = typeof window !== 'undefined' 
+      ? '' // Client-side: use relative URLs
+      : process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` // Vercel production/preview
+        : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000' // Fallback
+    
     const response = await fetch(`${baseUrl}/api/youtube-simple?${params}`)
     
     if (!response.ok) {
       console.error('YouTube Simple API HTTP Error:', response.status, response.statusText)
+      console.error('Request URL:', `${baseUrl}/api/youtube-simple?${params}`)
+      console.error('Environment:', { 
+        VERCEL_URL: process.env.VERCEL_URL, 
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+        isClient: typeof window !== 'undefined'
+      })
       return []
     }
     
     const result: APIResponse<YouTubeContent[]> = await response.json()
     
     if (result.success && result.data) {
+      console.log('✅ YouTube Simple API Success:', {
+        totalVideos: result.data.length,
+        firstVideo: result.data[0]?.title,
+        requestUrl: `${baseUrl}/api/youtube-simple?${params}`
+      })
       return result.data
     }
     
@@ -87,7 +104,13 @@ export const getYouTubeContentLegacy = async (
       ...(channelId && { channelId })
     })
     
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // Build the correct base URL for the current environment
+    const baseUrl = typeof window !== 'undefined' 
+      ? '' // Client-side: use relative URLs
+      : process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` // Vercel production/preview
+        : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000' // Fallback
+    
     const response = await fetch(`${baseUrl}/api/youtube?${params}`)
     
     if (!response.ok) {
@@ -120,7 +143,13 @@ export const getRSSContent = async (
       ...(feedUrl && { url: feedUrl })
     })
     
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // Build the correct base URL for the current environment
+    const baseUrl = typeof window !== 'undefined' 
+      ? '' // Client-side: use relative URLs
+      : process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` // Vercel production/preview
+        : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000' // Fallback
+    
     const response = await fetch(`${baseUrl}/api/rss?${params}`)
     
     if (!response.ok) {
@@ -153,7 +182,13 @@ export const getYouTubeSubscriptions = async (
       daysBack: daysBack.toString()
     })
     
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // Build the correct base URL for the current environment
+    const baseUrl = typeof window !== 'undefined' 
+      ? '' // Client-side: use relative URLs
+      : process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` // Vercel production/preview
+        : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000' // Fallback
+    
     const response = await fetch(`${baseUrl}/api/youtube/subscriptions?${params}`)
     
     if (!response.ok) {
@@ -186,7 +221,13 @@ export const getNewsContent = async (
       ...(sourceId && { source: sourceId })
     })
     
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // Build the correct base URL for the current environment
+    const baseUrl = typeof window !== 'undefined' 
+      ? '' // Client-side: use relative URLs
+      : process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` // Vercel production/preview
+        : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000' // Fallback
+    
     const response = await fetch(`${baseUrl}/api/news?${params}`)
     
     if (!response.ok) {

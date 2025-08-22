@@ -199,17 +199,9 @@ const extractImage = async (item: any): Promise<string> => {
     return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format'
   }
   
-  console.log('❌ No image found, using fallback')
-  // Default fantasy football themed images with better reliability
-  const fallbackImages = [
-    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format', // Football field
-    'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=400&h=300&fit=crop&q=80&auto=format', // Football helmet
-    'https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=400&h=300&fit=crop&q=80&auto=format', // Football stadium
-    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&q=80&auto=format', // Football player
-    'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=300&fit=crop&q=80&auto=format'  // Football action
-  ]
-  // Use a consistent fallback instead of random to avoid hydration issues
-  return fallbackImages[0]
+  console.log('❌ No image found, using consistent fallback')
+  // Use a single consistent fallback image to avoid hydration issues
+  return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&h=300&fit=crop&q=80&auto=format' // Football field
 }
 
 // Robust RSS parsing with error handling and multiple sources
@@ -229,9 +221,11 @@ async function parseRSSWithFallback(source: typeof RSS_SOURCES[0], requestId: st
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Fantasy Red Zone RSS Reader/1.0',
-          'Accept': 'application/rss+xml, application/xml, text/xml'
+          'Accept': 'application/rss+xml, application/xml, text/xml',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache'
         },
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(15000)
       })
 
       if (!response.ok) {
@@ -241,13 +235,38 @@ async function parseRSSWithFallback(source: typeof RSS_SOURCES[0], requestId: st
       const contentType = response.headers.get('content-type') || ''
       const text = await response.text()
       
-      // Check if the response looks like XML/RSS
-      if (!text.trim().startsWith('<?xml') && !text.trim().startsWith('<rss') && !text.trim().startsWith('<feed')) {
-        throw new Error(`Invalid RSS format - content type: ${contentType}, starts with: ${text.substring(0, 100)}`)
-      }
-
+      logger.info(`RSS Response received`, {
+        requestId,
+        operation: 'rss_response',
+        source: source.name,
+        contentType,
+        textLength: text.length,
+        firstChars: text.substring(0, 50)
+      })
+      
       // Clean the text to remove any non-XML content before parsing
-      const cleanedText = text.replace(/^[^<]*(<\?xml|<rss|<feed)/, '$1')
+      let cleanedText = text.trim()
+      
+      // Remove any leading non-XML characters (like BOM, whitespace, or HTML content)
+      const xmlMatch = cleanedText.match(/(<\?xml|<rss|<feed)/i)
+      if (xmlMatch && xmlMatch.index && xmlMatch.index > 0) {
+        logger.warn(`Removing ${xmlMatch.index} leading characters from RSS`, {
+          requestId,
+          operation: 'rss_cleanup',
+          source: source.name,
+          removedChars: cleanedText.substring(0, xmlMatch.index)
+        })
+        cleanedText = cleanedText.substring(xmlMatch.index)
+      }
+      
+      // Final validation
+      if (!cleanedText.trim()) {
+        throw new Error('Empty RSS content after cleanup')
+      }
+      
+      if (!cleanedText.match(/^(<\?xml|<rss|<feed)/i)) {
+        throw new Error(`Invalid RSS format after cleanup - content type: ${contentType}, starts with: ${cleanedText.substring(0, 100)}`)
+      }
       
       // Parse the cleaned RSS
       const feed = await parser.parseString(cleanedText)
