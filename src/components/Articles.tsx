@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import ProductCard from "@/components/product-card";
 
 export default function Articles() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,21 +23,11 @@ export default function Articles() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Latest Fantasy Articles</h2>
-      <ul className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {articles.map((a, i) => (
-          <li key={i} className="border-b pb-2">
-            <a
-              href={a.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              {a.title}
-            </a>{" "}
-            <span className="text-sm text-gray-500">({a.source})</span>
-          </li>
+          <ProductCard key={i} post={a} />
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
