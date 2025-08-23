@@ -33,7 +33,7 @@ export async function GET() {
             id: `rss_${feed.title?.replace(/\s+/g, '_').toLowerCase()}_${index}`,
             title: item.title || "No Title",
             shortDescription: (item.contentSnippet || item.content || "").slice(0, 200),
-            cover: item.enclosure?.url || 'https://via.placeholder.com/400x200/1f2937/f9fafb?text=Fantasy+Football',
+            cover: item.enclosure?.url && item.enclosure.url.startsWith("http") ? item.enclosure.url : null,
             slug: generateSlug(item.title || "no-title"),
             category: "Articles", // unify category for filtering
             publishDate: item.pubDate || new Date().toISOString(),

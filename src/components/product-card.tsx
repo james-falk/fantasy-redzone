@@ -111,12 +111,21 @@ const ProductCard: FC<ProductCardProps> = ({ post, isFeatured = false }) => {
         )}
         
         <figure className="relative h-48 w-full overflow-hidden">
-          <img
-            src={cover}
-            alt={title}
-            className="h-full w-full rounded-xl bg-gray-800 object-cover transition-transform duration-300 group-hover:scale-110"
-            loading="lazy"
-          />
+          {cover ? (
+            <img
+              src={cover}
+              alt={title}
+              className="h-full w-full rounded-xl bg-gray-800 object-cover transition-transform duration-300 group-hover:scale-110"
+              loading="lazy"
+            />
+          ) : (
+            <div className="h-full w-full rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <div className="text-4xl mb-2">{sourceBadge.icon}</div>
+                <div className="text-sm font-medium">{sourceBadge.label}</div>
+              </div>
+            </div>
+          )}
           {/* Source indicator overlay */}
           <div className="absolute top-3 right-3">
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-sm ${sourceBadge.bg} ${sourceBadge.text} ${sourceBadge.border}`}>
