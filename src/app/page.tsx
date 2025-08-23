@@ -7,7 +7,6 @@ import Navbar from '@/components/navbar'
 import Newsletter from '@/components/newsletter'
 import ContentSection from '@/components/content-section'
 import FeaturedCarousel from '@/components/featured-carousel'
-import Articles from '@/components/Articles'
 
 // Successfully deployed with YouTube Simple API: 2025-01-21T12:00:00.000Z
 // 
@@ -57,12 +56,6 @@ export default async function Home() {
 
       <main>
         <FeaturedCarousel featuredContent={featuredContent} />
-        
-        {/* RSS Articles Section */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <Articles />
-        </section>
-        
         <ContentSection initialContent={content} featuredContentIds={featuredContentIds} />
         <Faq items={Faqs} />
         <Newsletter />
