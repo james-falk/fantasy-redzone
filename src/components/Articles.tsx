@@ -8,15 +8,10 @@ export default function Articles() {
 
   useEffect(() => {
     async function load() {
-      try {
-        const res = await fetch("/api/rss");
-        const data = await res.json();
-        setArticles(data.articles || []);
-      } catch (e) {
-        console.error("Error fetching articles:", e);
-      } finally {
-        setLoading(false);
-      }
+      const res = await fetch("/api/rss", { cache: "no-store" });
+      const data = await res.json();
+      setArticles(data.articles || []);
+      setLoading(false);
     }
     load();
   }, []);
