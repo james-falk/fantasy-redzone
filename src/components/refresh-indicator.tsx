@@ -32,7 +32,7 @@ interface RefreshIndicatorProps {
 
 export default function RefreshIndicator({
   onRefresh,
-  pollingInterval = 2 * 60 * 1000, // 2 minutes default
+  pollingInterval = 60 * 60 * 1000, // 1 hour default
   showStatus = true,
   className = ''
 }: RefreshIndicatorProps) {

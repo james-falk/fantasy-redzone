@@ -58,7 +58,7 @@ export default function ClientPageWrapper({
       <div className="container mx-auto px-4 py-2">
         <RefreshIndicator 
           onRefresh={handleRefresh}
-          pollingInterval={2 * 60 * 1000} // 2 minutes
+          pollingInterval={60 * 60 * 1000} // 1 hour
           showStatus={true}
           className="mb-4"
         />
