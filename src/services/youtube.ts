@@ -111,7 +111,7 @@ class YouTubeAPIService {
       }
       
       // Get detailed video information for each video
-      const videoIds = playlistData.items.map((item: any) => item.contentDetails.videoId).join(',')
+      const videoIds = playlistData.items.map((item: Record<string, unknown>) => (item as { contentDetails: { videoId: string } }).contentDetails.videoId).join(',')
       
       const videosResponse = await fetch(
         `${this.baseUrl}/videos?part=snippet,contentDetails,statistics&id=${videoIds}&key=${this.apiKey}`
@@ -128,7 +128,7 @@ class YouTubeAPIService {
         return []
       }
       
-      const videos: YouTubeVideo[] = videosData.items.map((item: any) => ({
+      const videos: YouTubeVideo[] = videosData.items.map((item: Record<string, unknown>) => ({
         id: item.id,
         title: item.snippet.title,
         description: item.snippet.description,

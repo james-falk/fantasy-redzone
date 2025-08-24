@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Image from 'next/image'
 
 interface FeaturedCarouselProps {
   featuredContent: Array<{
@@ -157,11 +158,12 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
 
                       {/* Content Image */}
                       <div className={`relative ${isCurrent ? 'h-48 lg:h-56' : 'h-40 lg:h-44'}`}>
-                        <img
+                        <Image
                           src={content.cover}
                           alt={content.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       </div>
 

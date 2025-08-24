@@ -22,7 +22,7 @@ export default async function Home() {
   .lean()
 
   // Transform to the format expected by components
-  const transformedVideos = youtubeVideos.map((video: any) => ({
+  const transformedVideos = youtubeVideos.map((video: Record<string, unknown>) => ({
     id: video._id.toString(),
     title: video.title,
     shortDescription: video.description.length > 150 

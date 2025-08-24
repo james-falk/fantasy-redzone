@@ -31,7 +31,7 @@ class FeedSourceManager {
   async getEnabledSources(type?: 'youtube' | 'rss'): Promise<FeedSourceConfig[]> {
     await connectToDatabase()
     
-    const query: any = { enabled: true }
+    const query: Record<string, unknown> = { enabled: true }
     if (type) {
       query.type = type
     }

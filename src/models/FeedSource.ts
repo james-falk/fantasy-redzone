@@ -105,7 +105,7 @@ FeedSourceSchema.methods.updateIngestionStatus = function(success: boolean, erro
 
 // Static method to get enabled sources by type
 FeedSourceSchema.statics.getEnabledSources = function(type?: "youtube" | "rss") {
-  const query: any = { enabled: true }
+  const query: Record<string, unknown> = { enabled: true }
   if (type) {
     query.type = type
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 
 interface ProductCardProps {
   post: {
@@ -73,15 +74,16 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
 
       {/* Image Section (60-70% of card height) */}
       <div className="relative h-48 lg:h-52">
-        <img
-          src={imageError ? '/placeholder-image.jpg' : post.cover}
-          alt={post.title}
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={() => setImageError(true)}
-        />
-        {/* Fallback placeholder when image fails */}
-        {imageError && (
+        {!imageError ? (
+          <Image
+            src={post.cover}
+            alt={post.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={() => setImageError(true)}
+          />
+        ) : (
           <div className="absolute inset-0 bg-gray-700 flex items-center justify-center">
             <div className="text-center">
               <div className="text-sm text-gray-400">VIDEO</div>

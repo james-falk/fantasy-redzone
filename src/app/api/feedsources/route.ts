@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     
     // Build query
-    const query: any = {}
+    const query: Record<string, unknown> = {}
     if (type) query.type = type
     if (category) query.category = category
     if (enabled !== null) query.enabled = enabled === 'true'
