@@ -1,5 +1,4 @@
-import { getAllContent } from '@/services/content'
-import { Faqs } from '@/appData/faqs'
+﻿import { Faqs } from '@/appData/faqs'
 import Faq from '@/components/faq'
 import Footer from '@/components/footer'
 import Hero from '@/components/hero'
@@ -7,43 +6,43 @@ import Navbar from '@/components/navbar'
 import Newsletter from '@/components/newsletter'
 import ContentSection from '@/components/content-section'
 import FeaturedCarousel from '@/components/featured-carousel'
-import Articles from '@/components/Articles'
+import { connectToDatabase } from '@/lib/mongodb'
+import Resource from '@/models/Resource'
 
-// Successfully deployed with YouTube Simple API: 2025-01-21T12:00:00.000Z
-// 
-// ✅ UPDATED: Now using simple YouTube API key approach (much better!)
-// This site uses YouTube API key with curated channels (includeYouTube: true)
-// No more OAuth complexity - just add YOUTUBE_API_KEY to environment variables
-// The API key approach provides reliable content from specific fantasy football channels
-//
 export default async function Home() {
-  const content = await getAllContent({
-    includeYouTube: true, // ✅ Enable YouTube content using simple API key approach
-    includeRSS: true, // ✅ Enable RSS content for articles
-    includeSubscriptions: false, // ❌ OAuth subscriptions completely disabled
-    includeNews: true, // ✅ Enable news articles
-    youtubeMaxResults: 30, // Get more YouTube videos from curated channels
-    rssLimit: 25, // Get more RSS articles
-    subscriptionsMaxResults: 0, // Not using OAuth subscriptions
-    subscriptionsDaysBack: 30, // Look back 1 month for content
-    newsLimit: 40 // Get more news articles
+  // Fetch YouTube videos directly from database
+  await connectToDatabase()
+  
+  const youtubeVideos = await Resource.find({
+    source: 'YouTube',
+    isActive: true
   })
+  .sort({ pubDate: -1 })
+  .limit(30)
+  .lean()
 
-  // Debug logging
-  console.log('🔍 HOME PAGE DEBUG:')
-  console.log('Total content items:', content.length)
-  console.log('YouTube videos:', content.filter(item => item.source === 'youtube').length)
-  console.log('RSS articles:', content.filter(item => item.source === 'rss').length)
-  console.log('News articles:', content.filter(item => item.source === 'news').length)
-  console.log('First few items:', content.slice(0, 3).map(item => ({ id: item.id, title: item.title, source: item.source })))
+  // Transform to the format expected by components
+  const transformedVideos = youtubeVideos.map((video: any) => ({
+    id: video._id.toString(),
+    title: video.title,
+    shortDescription: video.description.length > 150 
+      ? video.description.substring(0, 150) + '...' 
+      : video.description,
+    cover: video.image,
+    category: video.category,
+    publishDate: video.pubDate,
+    source: 'youtube' as const,
+    url: video.url,
+    sourceName: video.author,
+    author: video.author,
+    viewCount: video.rawFeedItem?.viewCount ? parseInt(video.rawFeedItem.viewCount) : undefined,
+    duration: video.rawFeedItem?.duration ? formatDuration(video.rawFeedItem.duration) : undefined,
+    tags: video.tags || []
+  }))
 
-  // Get the 5 most recent items for featured carousel
-  const featuredContent = content
-    .sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
-    .slice(0, 5)
-
-  // Get featured content IDs for styling in the main list
-  const featuredContentIds = featuredContent.map(item => item.id)
+  // Use the first 5 videos as featured content for the carousel
+  const featuredContent = transformedVideos.slice(0, 5)
+  const featuredContentIds = featuredContent.map(video => video.id)
 
   return (
     <>
@@ -57,13 +56,8 @@ export default async function Home() {
 
       <main>
         <FeaturedCarousel featuredContent={featuredContent} />
-        
-        {/* RSS Articles Section */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <Articles />
-        </section>
-        
-        <ContentSection initialContent={content} featuredContentIds={featuredContentIds} />
+
+        <ContentSection initialContent={transformedVideos} featuredContentIds={featuredContentIds} />
         <Faq items={Faqs} />
         <Newsletter />
       </main>
@@ -71,4 +65,20 @@ export default async function Home() {
       <Footer />
     </>
   )
+}
+
+function formatDuration(duration: string): string {
+  // YouTube duration is in ISO 8601 format (PT1H25M1S)
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+  if (!match) return duration
+
+  const hours = parseInt(match[1] || '0')
+  const minutes = parseInt(match[2] || '0')
+  const seconds = parseInt(match[3] || '0')
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  } else {
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
 }

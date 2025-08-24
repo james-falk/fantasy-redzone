@@ -1,22 +1,24 @@
-import { FC } from "react";
-
 interface SectionHeadingProps {
-  title: string[];
-  subtitle?: string;
+  title: string[]
+  subtitle: string
 }
 
-const SectionHeading: FC<SectionHeadingProps> = ({ title, subtitle }) => (
-  <div className="my-12 text-center">
-    <h2 className="text-4xl md:text-5xl font-black text-white redzone-text-shadow mb-4 tracking-wide">
-      {title[0]} <span className="redzone-red-text">{title[1].toUpperCase()}</span>
-    </h2>
-    {subtitle && (
-      <div className="max-w-4xl mx-auto">
-        <p className="text-lg md:text-xl text-gray-300 leading-relaxed font-medium">{subtitle}</p>
-        <div className="mt-6 w-24 h-1 redzone-gradient mx-auto rounded-full"></div>
-      </div>
-    )}
-  </div>
-);
-
-export default SectionHeading;
+export default function SectionHeading({ title, subtitle }: SectionHeadingProps) {
+  return (
+    <div className="text-center mb-12">
+      <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+        {title.map((part, index) => (
+          <span key={index}>
+            {index > 0 && ' '}
+            <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">
+              {part}
+            </span>
+          </span>
+        ))}
+      </h2>
+      <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+        {subtitle}
+      </p>
+    </div>
+  )
+}

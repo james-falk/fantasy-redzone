@@ -1,20 +1,33 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Content } from '@/types/content'
 import ProductList from './product-list'
 import ContentFilterComponent from './content-filter'
 import SectionHeading from './section-heading'
 
 interface ContentSectionProps {
-  initialContent: Content[]
+  initialContent: Array<{
+    id: string
+    title: string
+    shortDescription: string
+    cover: string
+    category: string
+    publishDate: string
+    source: 'youtube' | 'rss' | 'news' | 'static'
+    url?: string
+    sourceName?: string
+    author?: string
+    viewCount?: number
+    duration?: string
+    tags: string[]
+  }>
   featuredContentIds: string[]
 }
 
 export default function ContentSection({ initialContent, featuredContentIds }: ContentSectionProps) {
-  const [filteredContent, setFilteredContent] = useState<Content[]>(initialContent)
+  const [filteredContent, setFilteredContent] = useState(initialContent)
 
-  const handleFilterChange = useCallback((filtered: Content[]) => {
+  const handleFilterChange = useCallback((filtered: typeof initialContent) => {
     setFilteredContent(filtered)
   }, [])
 
@@ -63,4 +76,4 @@ export default function ContentSection({ initialContent, featuredContentIds }: C
       )}
     </section>
   )
-} 
+}

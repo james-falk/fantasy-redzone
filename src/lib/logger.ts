@@ -12,22 +12,6 @@ export interface LogContext {
   [key: string]: unknown
 }
 
-export interface ContentUpdatePayload {
-  source: 'youtube' | 'rss' | 'news'
-  count: number
-  items?: Array<{
-    id: string
-    title: string
-    publishDate?: string
-    category?: string
-    [key: string]: unknown
-  }>
-  cached?: boolean
-  responseTime?: number
-  subscriptions?: number
-  sources?: string[]
-}
-
 class VercelLogger {
   private formatMessage(level: string, message: string, context?: LogContext, payload?: unknown): string {
     const timestamp = new Date().toISOString()
@@ -96,20 +80,6 @@ class VercelLogger {
     if (process.env.NODE_ENV === 'development') {
       this.log('DEBUG', message, context, payload)
     }
-  }
-
-  // Special method for content update success logs
-  contentUpdateSuccess(source: string, payload: ContentUpdatePayload, context?: LogContext): void {
-    const message = `✅ ${source.toUpperCase()} content update completed successfully`
-    
-    const enhancedContext = {
-      ...context,
-      operation: 'content_update',
-      source,
-      success: true
-    }
-
-    this.info(message, enhancedContext, payload)
   }
 
   // Special method for API endpoint success logs

@@ -1,314 +1,240 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Content, ContentFilter, FANTASY_CATEGORIES, LEAGUE_TYPES, LeagueType } from '@/types/content'
+import { useState, useEffect, useMemo } from 'react'
 import { Search, Filter, X } from 'lucide-react'
 
-interface ContentFilterProps {
-  content: Content[]
-  onFilterChange: (filteredContent: Content[]) => void
-  className?: string
+interface ContentItem {
+  id: string
+  title: string
+  shortDescription: string
+  cover: string
+  category: string
+  publishDate: string
+  source: 'youtube' | 'rss' | 'news' | 'static'
+  url?: string
+  sourceName?: string
+  author?: string
+  viewCount?: number
+  duration?: string
+  tags: string[]
 }
 
-export default function ContentFilterComponent({ content, onFilterChange, className = '' }: ContentFilterProps) {
-  const [filter, setFilter] = useState<ContentFilter>({})
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
+interface ContentFilterProps {
+  content: ContentItem[]
+  onFilterChange: (filtered: ContentItem[]) => void
+}
 
-  // Use predefined fantasy categories and get unique values for other filters
-  const categories = FANTASY_CATEGORIES
-  const sources = [...new Set(content.map(item => item.source))]
-  const allTags = [...new Set(content.flatMap(item => item.tags))].sort()
+export default function ContentFilterComponent({ content, onFilterChange }: ContentFilterProps) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedSource, setSelectedSource] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+
+  // Extract unique values from content
+  const categories = useMemo(() => [...new Set(content.map(item => item.category))].sort(), [content])
+  const sources = useMemo(() => [...new Set(content.map(item => item.source))].sort(), [content])
+  const allTags = useMemo(() => {
+    const tags = content.flatMap(item => item.tags)
+    return [...new Set(tags)].sort()
+  }, [content])
 
   // Apply filters
-  useEffect(() => {
-    let filtered = [...content]
-
-    // Search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(searchLower) ||
-        item.shortDescription.toLowerCase().includes(searchLower) ||
-        item.category.toLowerCase().includes(searchLower) ||
-        item.tags.some(tag => tag.toLowerCase().includes(searchLower))
-      )
-    }
-
-    // Category filter
-    if (filter.category) {
-      filtered = filtered.filter(item => item.category === filter.category)
-    }
-
-    // Source filter
-    if (filter.source) {
-      filtered = filtered.filter(item => item.source === filter.source)
-    }
-
-    // Tags filter
-    if (filter.tags && filter.tags.length > 0) {
-      filtered = filtered.filter(item => 
-        filter.tags!.some(tag => item.tags.includes(tag))
-      )
-    }
-
-    // League Type filter - for now we'll filter based on tags, later this can be more sophisticated
-    if (filter.leagueType) {
-      const leagueTypeLower = filter.leagueType.toLowerCase()
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(leagueTypeLower) ||
-        item.shortDescription.toLowerCase().includes(leagueTypeLower) ||
-        item.tags.some(tag => tag.toLowerCase().includes(leagueTypeLower))
-      )
-    }
-
-    onFilterChange(filtered)
-  }, [content, filter, searchTerm, onFilterChange])
-
-  const handleCategoryChange = (category: string) => {
-    setFilter(prev => ({
-      ...prev,
-      category: prev.category === category ? undefined : category
-    }))
-  }
-
-  const handleSourceChange = (source: string) => {
-    setFilter(prev => ({
-      ...prev,
-      source: prev.source === source ? undefined : source as Content['source']
-    }))
-  }
-
-  const handleTagToggle = (tag: string) => {
-    setFilter(prev => {
-      const currentTags = prev.tags || []
-      const newTags = currentTags.includes(tag)
-        ? currentTags.filter(t => t !== tag)
-        : [...currentTags, tag]
-      
-      return {
-        ...prev,
-        tags: newTags.length > 0 ? newTags : undefined
+  const filteredContent = useMemo(() => {
+    return content.filter(item => {
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase()
+        const titleMatch = item.title.toLowerCase().includes(searchLower)
+        const descMatch = item.shortDescription.toLowerCase().includes(searchLower)
+        if (!titleMatch && !descMatch) return false
       }
-    })
-  }
 
-  const handleLeagueTypeChange = (leagueType: LeagueType) => {
-    setFilter(prev => ({
-      ...prev,
-      leagueType: prev.leagueType === leagueType ? undefined : leagueType
-    }))
-  }
+      // Category filter
+      if (selectedCategory && item.category !== selectedCategory) {
+        return false
+      }
+
+      // Source filter
+      if (selectedSource && item.source !== selectedSource) {
+        return false
+      }
+
+      // Tags filter
+      if (selectedTags.length > 0) {
+        const hasTag = selectedTags.some(tag => item.tags.includes(tag))
+        if (!hasTag) return false
+      }
+
+      return true
+    })
+  }, [content, searchTerm, selectedCategory, selectedSource, selectedTags])
+
+  // Update parent component
+  useEffect(() => {
+    onFilterChange(filteredContent)
+  }, [filteredContent, onFilterChange])
 
   const clearFilters = () => {
-    setFilter({})
     setSearchTerm('')
+    setSelectedCategory('')
+    setSelectedSource('')
+    setSelectedTags([])
   }
 
-  const hasActiveFilters = filter.category || filter.source || (filter.tags && filter.tags.length > 0) || filter.leagueType || searchTerm
-
-  const getSourceIcon = (source: string) => {
-    switch (source) {
-      case 'youtube': return '📺'
-      case 'rss': return '📰'
-      case 'static': return '🎓'
-      default: return '📄'
-    }
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    )
   }
 
-  const getSourceLabel = (source: string) => {
-    switch (source) {
-      case 'youtube': return 'Videos'
-      case 'rss': return 'News'
-      case 'news': return 'News'
-      case 'static': return 'Courses'
-      default: return source
-    }
-  }
+  const hasActiveFilters = searchTerm || selectedCategory || selectedSource || selectedTags.length > 0
 
   return (
-    <div className={`redzone-card rounded-xl shadow-lg border border-red-600/20 p-6 mb-8 ${className}`}>
+    <div className="mb-8">
       {/* Search Bar */}
       <div className="relative mb-6">
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
         <input
           type="text"
-          placeholder="🔍 Search fantasy football content..."
+          placeholder="Search fantasy football content..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-black/20 border border-red-600/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-white placeholder-gray-400 shadow-lg"
+          className="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
         />
       </div>
 
-      {/* Filter Toggle Button - Full Width */}
-      <div className="mb-6">
+      {/* Filter Toggle */}
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => setIsFilterOpen(!isFilterOpen)}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-lg redzone-gradient-intense text-white font-semibold shadow-lg hover:scale-[1.02] transition-all duration-300"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
         >
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            <span>FILTERS & CATEGORIES</span>
-            {hasActiveFilters && (
-              <span className="bg-white text-red-600 text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold ml-2">
-                {(filter.tags?.length || 0) + (filter.category ? 1 : 0) + (filter.source ? 1 : 0) + (filter.leagueType ? 1 : 0) + (searchTerm ? 1 : 0)}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {hasActiveFilters && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  clearFilters()
-                }}
-                className="flex items-center gap-1 px-2 py-1 text-white/80 hover:text-white text-xs font-medium transition-colors hover:bg-white/10 rounded"
-              >
-                <X className="w-3 h-3" />
-                CLEAR
-              </button>
-            )}
-            <span className="text-white/80 text-sm">
-              {isFilterOpen ? '▲' : '▼'}
+          <Filter className="w-4 h-4" />
+          Filters
+          {hasActiveFilters && (
+            <span className="bg-yellow-500 text-black text-xs px-2 py-1 rounded-full">
+              {[searchTerm, selectedCategory, selectedSource, selectedTags.length].filter(Boolean).length}
             </span>
-          </div>
+          )}
         </button>
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-2 px-3 py-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+            Clear All
+          </button>
+        )}
       </div>
 
-      {/* Filters */}
-      <div className={`space-y-6 transition-all duration-300 ${isFilterOpen ? 'block' : 'hidden'}`}>
-        {/* League Type Toggle */}
-        <div>
-          <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">League Type</h3>
-          <div className="flex gap-2">
-            {LEAGUE_TYPES.map(leagueType => (
-              <button
-                key={leagueType}
-                onClick={() => handleLeagueTypeChange(leagueType)}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 ${
-                  filter.leagueType === leagueType
-                    ? 'redzone-gradient-intense text-white shadow-lg redzone-glow scale-105'
-                    : 'bg-white/10 text-gray-300 hover:bg-red-600/20 hover:text-white border border-white/20 hover:border-red-600/30'
-                }`}
+      {/* Filter Panel */}
+      {isFilterOpen && (
+        <div className="bg-gray-800 rounded-lg p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
               >
-                {leagueType.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
+                <option value="">All Categories</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
 
-
-
-        {/* Content Sources */}
-        <div>
-          <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Content Types</h3>
-          <div className="flex flex-wrap gap-2">
-            {sources.map(source => (
-              <button
-                key={source}
-                onClick={() => handleSourceChange(source)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                  filter.source === source
-                    ? 'redzone-gradient-intense text-white shadow-lg redzone-glow'
-                    : 'bg-white/10 text-gray-300 hover:bg-red-600/20 hover:text-white border border-white/20 hover:border-red-600/30'
-                }`}
+            {/* Source Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Source</label>
+              <select
+                value={selectedSource}
+                onChange={(e) => setSelectedSource(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
               >
-                <span>{getSourceIcon(source)}</span>
-                {getSourceLabel(source).toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
+                <option value="">All Sources</option>
+                {sources.map(source => (
+                  <option key={source} value={source}>
+                    {source === 'youtube' ? '📺 Videos' : 
+                     source === 'rss' ? '📰 Articles' : 
+                     source === 'news' ? '📰 News' : 
+                     source === 'static' ? '🎓 Courses' : source}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        {/* Categories */}
-        <div>
-          <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Categories</h3>
-          <div className="flex flex-wrap gap-2">
-            {categories.map(category => (
-              <button
-                key={category}
-                onClick={() => handleCategoryChange(category)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                  filter.category === category
-                    ? 'redzone-gradient-intense text-white shadow-lg redzone-glow'
-                    : 'bg-white/10 text-gray-300 hover:bg-red-600/20 hover:text-white border border-white/20 hover:border-red-600/30'
-                }`}
-              >
-                {category.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Popular Tags */}
-        {allTags.length > 0 && (
-          <div>
-            <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Popular Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {allTags.slice(0, 10).map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => handleTagToggle(tag)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-300 ${
-                    filter.tags?.includes(tag)
-                      ? 'redzone-gradient text-white shadow-lg'
-                      : 'bg-white/10 text-gray-400 hover:bg-red-600/20 hover:text-white border border-white/20 hover:border-red-600/30'
-                  }`}
-                >
-                  #{tag}
-                </button>
-              ))}
+            {/* Active Filters Display */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Active Filters</label>
+              <div className="flex flex-wrap gap-2">
+                {selectedCategory && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500 text-black">
+                    Category: {selectedCategory}
+                    <button
+                      onClick={() => setSelectedCategory('')}
+                      className="ml-1 hover:text-gray-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedSource && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500 text-black">
+                    Source: {selectedSource}
+                    <button
+                      onClick={() => setSelectedSource('')}
+                      className="ml-1 hover:text-gray-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedTags.map(tag => (
+                  <span key={tag} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500 text-black">
+                    {tag}
+                    <button
+                      onClick={() => toggleTag(tag)}
+                      className="ml-1 hover:text-gray-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Clear Filters */}
-        {hasActiveFilters && (
-          <div className="pt-4 border-t border-red-600/20">
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white text-sm font-semibold border border-white/20 hover:border-red-600/30 rounded-lg hover:bg-red-600/10 transition-all duration-300"
-            >
-              <X className="w-4 h-4" />
-              CLEAR ALL FILTERS
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Active Filters Summary */}
-      {hasActiveFilters && (
-        <div className="mt-6 pt-4 border-t border-red-600/20">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-gray-300 font-semibold text-sm">ACTIVE FILTERS:</span>
-            {filter.leagueType && (
-              <span className="px-3 py-1 rounded-full text-xs font-bold redzone-gradient-intense text-white shadow-lg">
-                {filter.leagueType.toUpperCase()}
-              </span>
-            )}
-            {filter.category && (
-              <span className="px-3 py-1 rounded-full text-xs font-bold redzone-gradient-intense text-white shadow-lg">
-                {filter.category.toUpperCase()}
-              </span>
-            )}
-            {filter.source && (
-              <span className="px-3 py-1 rounded-full text-xs font-bold redzone-gradient-intense text-white shadow-lg">
-                {getSourceLabel(filter.source).toUpperCase()}
-              </span>
-            )}
-            {filter.tags?.map(tag => (
-              <span key={tag} className="px-3 py-1 rounded-full text-xs font-bold redzone-gradient text-white shadow-lg">
-                #{tag}
-              </span>
-            ))}
-            {searchTerm && (
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-600 text-white shadow-lg">
-                &ldquo;{searchTerm}&rdquo;
-              </span>
-            )}
-          </div>
+          {/* Tags Filter */}
+          {allTags.length > 0 && (
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-300 mb-3">Tags</label>
+              <div className="flex flex-wrap gap-2">
+                {allTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                      selectedTags.includes(tag)
+                        ? 'bg-yellow-500 text-black'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   )
-} 
+}

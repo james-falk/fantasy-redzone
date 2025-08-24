@@ -44,7 +44,6 @@ const quickLinks = {
   title: 'Content',
   items: [
     { label: 'Latest Videos', href: '' },
-    { label: 'Articles', href: '' },
     { label: 'Rankings', href: '' },
     { label: 'Analysis', href: '' },
   ],

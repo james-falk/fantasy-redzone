@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Content, YouTubeContent, RSSContent } from '@/types/content'
-import { NewsArticle } from '@/types/news'
-import { formatDate } from '@/utils/functions'
 
 interface FeaturedCarouselProps {
-  featuredContent: Content[]
+  featuredContent: Array<{
+    id: string
+    title: string
+    shortDescription: string
+    cover: string
+    category: string
+    publishDate: string
+    source: 'youtube' | 'rss' | 'news' | 'static'
+    url?: string
+    sourceName?: string
+    author?: string
+    viewCount?: number
+    duration?: string
+  }>
 }
 
 export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselProps) {
@@ -35,30 +45,20 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
     )
   }
 
-  const getContentLink = (content: Content): string => {
-    switch (content.source) {
-      case 'youtube':
-        return (content as YouTubeContent).url
-      case 'rss':
-        return (content as RSSContent).url
-      case 'news':
-        return (content as NewsArticle).url
-      case 'static':
-      default:
-        return `/${content.slug}`
-    }
+  const getContentLink = (content: FeaturedCarouselProps['featuredContent'][0]): string => {
+    return content.url || '#'
   }
 
   const getSourceBadge = (source: string) => {
     switch (source) {
       case 'youtube':
-        return { icon: '📺', label: 'VIDEO', bg: 'bg-red-600/30', text: 'text-red-300', border: 'border-red-500/50' }
+        return { label: 'VIDEO', bg: 'bg-red-600', text: 'text-white' }
       case 'rss':
       case 'news':
-        return { icon: '📰', label: 'NEWS', bg: 'bg-green-600/30', text: 'text-green-300', border: 'border-green-500/50' }
+        return { label: 'NEWS', bg: 'bg-green-600', text: 'text-white' }
       case 'static':
       default:
-        return { icon: '🎓', label: 'COURSE', bg: 'bg-blue-600/30', text: 'text-blue-300', border: 'border-blue-500/50' }
+        return { label: 'COURSE', bg: 'bg-blue-600', text: 'text-white' }
     }
   }
 
@@ -79,7 +79,6 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
       {/* Carousel Container */}
       <div className="relative">
         {/* Navigation Arrows */}
-        {/* Navigation Buttons - Only show on client */}
         {isClient && (
           <>
             <button
@@ -135,70 +134,46 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
                     } : undefined}
                     className={`block group ${isClient ? 'cursor-pointer' : ''}`}
                   >
-                    <div className={`relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:scale-[1.02] ${
+                    <div className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:scale-[1.02] ${
                       isCurrent 
                         ? 'border-2 border-yellow-500/70 hover:shadow-yellow-500/30 hover:border-yellow-400/80' 
-                        : 'border border-gray-600/50 hover:border-yellow-500/50'
+                        : 'border border-gray-700 hover:border-gray-600'
                     }`}>
                       {/* Featured Badge - Only show on current item */}
                       {isCurrent && (
-                        <div className="absolute top-4 left-4 z-10">
-                          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg">
-                            ⭐ FEATURED
+                        <div className="absolute top-3 left-3 z-10">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 text-black shadow-lg">
+                            FEATURED
                           </span>
                         </div>
                       )}
 
                       {/* Source Badge */}
-                      <div className="absolute top-4 right-4 z-10">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-sm ${sourceBadge.bg} ${sourceBadge.text} ${sourceBadge.border}`}>
-                          <span className="mr-1">{sourceBadge.icon}</span>
+                      <div className="absolute top-3 right-3 z-10">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${sourceBadge.bg} ${sourceBadge.text}`}>
                           {sourceBadge.label}
                         </span>
                       </div>
 
                       {/* Content Image */}
-                      <div className={`relative ${isCurrent ? 'h-80 lg:h-96' : 'h-64 lg:h-72'}`}>
+                      <div className={`relative ${isCurrent ? 'h-48 lg:h-56' : 'h-40 lg:h-44'}`}>
                         <img
                           src={content.cover}
                           alt={content.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-full object-cover"
                           loading="lazy"
                         />
-                        {/* Gradient Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                       </div>
 
-                      {/* Content Info - More detailed on current item */}
-                      <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-6 text-white">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`${
-                            isCurrent 
-                              ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black' 
-                              : 'bg-gray-700 text-gray-300'
-                          } px-2 py-1 rounded-lg text-xs font-bold`}>
-                            {content.category}
-                          </span>
-                          {isCurrent && (
-                            <span className="text-xs text-gray-300 font-medium">
-                              {formatDate(content.publishDate)}
-                            </span>
-                          )}
-                        </div>
-                        
-                        <h3 className={`font-bold mb-1 transition-colors duration-300 line-clamp-2 ${
+                      {/* Content Info - Simplified thumbnail layout */}
+                      <div className="p-4">
+                        <h3 className={`font-bold text-white transition-colors duration-300 line-clamp-2 ${
                           isCurrent 
-                            ? 'text-xl lg:text-2xl group-hover:text-yellow-400' 
-                            : 'text-base lg:text-lg group-hover:text-yellow-400'
+                            ? 'text-base lg:text-lg group-hover:text-yellow-400' 
+                            : 'text-sm group-hover:text-yellow-400'
                         }`}>
                           {content.title}
                         </h3>
-                        
-                        {isCurrent && (
-                          <p className="text-gray-300 text-sm line-clamp-2 group-hover:text-gray-200 transition-colors duration-300">
-                            {content.shortDescription}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>

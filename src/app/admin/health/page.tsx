@@ -15,12 +15,11 @@ interface HealthData {
   }
   environment: {
     hasNextPublicSiteUrl: boolean
-    hasCronSecret: boolean
-    hasRefreshToken: boolean
-    hasYouTubeClientId: boolean
-    hasYouTubeClientSecret: boolean
-    hasYouTubeRefreshToken: boolean
-    hasNewsSourcesConfig: boolean
+    hasNextAuthUrl: boolean
+    hasNextAuthSecret: boolean
+    hasMongoDbUri: boolean
+    hasGoogleClientId: boolean
+    hasGoogleClientSecret: boolean
     siteUrl: string
   }
   endpoints: Array<{
@@ -49,27 +48,6 @@ export default function HealthDashboard() {
       console.error('Failed to fetch health data:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const triggerRefresh = async () => {
-    try {
-      const response = await fetch('/api/refresh', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_REFRESH_TOKEN || 'default-refresh-token'}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      const result = await response.json()
-      
-      if (result.success) {
-        alert(`✅ Refresh completed! ${result.results.successful} successful, ${result.results.failed} failed`)
-      } else {
-        alert(`❌ Refresh failed: ${result.error}`)
-      }
-    } catch (error) {
-      alert(`❌ Refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -130,7 +108,7 @@ export default function HealthDashboard() {
         </div>
 
         {/* Overall Health Score */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
@@ -166,26 +144,6 @@ export default function HealthDashboard() {
                 <dt className="text-sm font-medium text-gray-500 truncate">Response Time</dt>
                 <dd className="text-lg font-medium text-gray-900">{healthData.duration}ms</dd>
               </dl>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex space-x-2">
-                <button
-                  onClick={fetchHealthData}
-                  disabled={loading}
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Refreshing...' : 'Refresh'}
-                </button>
-                <button
-                  onClick={triggerRefresh}
-                  className="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                >
-                  Force Update
-                </button>
-              </div>
             </div>
           </div>
         </div>
