@@ -3,8 +3,44 @@ import { connectToDatabase } from '@/lib/mongodb'
 import Resource from '@/models/Resource'
 import FeedSource from '@/models/FeedSource'
 
+interface DebugInfo {
+  timestamp: string
+  environment: {
+    nodeEnv: string | undefined
+    vercelEnv: string | undefined
+    hasMongoUri: boolean
+    hasYouTubeKey: boolean
+    mongoUriLength: number
+    youtubeKeyLength: number
+  }
+  database: {
+    connectionStatus: string
+    resourceCount: number
+    youtubeVideosCount: number
+    feedSourcesCount: number
+    sampleResources: Array<{
+      id: string | undefined
+      title: string
+      source: string
+      category: string
+      image: string
+      url: string
+      createdAt: Date
+    }>
+    sampleFeedSources: Array<{
+      id: string | undefined
+      name: string
+      type: string
+      identifier: string
+      enabled: boolean
+      createdAt: Date
+    }>
+  }
+  errors: string[]
+}
+
 export async function GET() {
-  const debugInfo = {
+  const debugInfo: DebugInfo = {
     timestamp: new Date().toISOString(),
     environment: {
       nodeEnv: process.env.NODE_ENV,
@@ -56,14 +92,14 @@ export async function GET() {
         .lean()
         .select('title source category image url createdAt')
 
-      debugInfo.database.sampleResources = sampleResources.map(resource => ({
-        id: resource._id?.toString(),
-        title: resource.title,
-        source: resource.source,
-        category: resource.category,
-        image: resource.image,
-        url: resource.url,
-        createdAt: resource.createdAt
+      debugInfo.database.sampleResources = sampleResources.map((resource: Record<string, unknown>) => ({
+        id: (resource._id as { toString(): string })?.toString(),
+        title: (resource.title as string) || '',
+        source: (resource.source as string) || '',
+        category: (resource.category as string) || '',
+        image: (resource.image as string) || '',
+        url: (resource.url as string) || '',
+        createdAt: (resource.createdAt as Date) || new Date()
       }))
 
       // Get sample feed sources
@@ -73,13 +109,13 @@ export async function GET() {
         .lean()
         .select('name type identifier enabled createdAt')
 
-      debugInfo.database.sampleFeedSources = sampleFeedSources.map(source => ({
-        id: source._id?.toString(),
-        name: source.name,
-        type: source.type,
-        identifier: source.identifier,
-        enabled: source.enabled,
-        createdAt: source.createdAt
+      debugInfo.database.sampleFeedSources = sampleFeedSources.map((source: Record<string, unknown>) => ({
+        id: (source._id as { toString(): string })?.toString(),
+        name: (source.name as string) || '',
+        type: (source.type as string) || '',
+        identifier: (source.identifier as string) || '',
+        enabled: (source.enabled as boolean) || false,
+        createdAt: (source.createdAt as Date) || new Date()
       }))
 
       console.log('🔍 [DEBUG API] Sample resources:', debugInfo.database.sampleResources.length)
