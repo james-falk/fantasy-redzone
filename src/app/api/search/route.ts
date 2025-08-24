@@ -61,13 +61,13 @@ export async function GET(request: NextRequest) {
       const result = {
         ...resource,
         searchRelevance: {
-          hasExactKeywordMatch: resource.keywords?.some(keyword => 
+          hasExactKeywordMatch: resource.keywords?.some((keyword: string) => 
             query.toLowerCase().includes(keyword.toLowerCase()) || 
             keyword.toLowerCase().includes(query.toLowerCase())
           ) || false,
           hasTextMatch: resource.title.toLowerCase().includes(query.toLowerCase()) || 
                        resource.description.toLowerCase().includes(query.toLowerCase()),
-          keywordMatches: resource.keywords?.filter(keyword => 
+          keywordMatches: resource.keywords?.filter((keyword: string) => 
             query.toLowerCase().includes(keyword.toLowerCase()) || 
             keyword.toLowerCase().includes(query.toLowerCase())
           ) || []
