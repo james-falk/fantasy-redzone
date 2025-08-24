@@ -13,7 +13,7 @@ interface CronResponse {
     totalIngestions: number
     successfulIngestions: number
     failedIngestions: number
-  }
+  } | null
   environment: string
   timestamp: string
 }
