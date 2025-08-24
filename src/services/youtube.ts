@@ -91,12 +91,12 @@ class YouTubeAPIService {
         throw new Error(`Channel not found: ${channelId}`)
       }
       
-      const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads
-      console.log(`Found uploads playlist: ${uploadsPlaylistId}`)
+      const uploadsPlaylistId = (channelData.items[0] as Record<string, unknown>).contentDetails as { relatedPlaylists: { uploads: string } }
+      console.log(`Found uploads playlist: ${uploadsPlaylistId.relatedPlaylists.uploads}`)
       
       // Get videos from the uploads playlist
       const playlistResponse = await fetch(
-        `${this.baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${this.apiKey}`
+        `${this.baseUrl}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId.relatedPlaylists.uploads}&maxResults=${maxResults}&key=${this.apiKey}`
       )
       
       if (!playlistResponse.ok) {
@@ -129,21 +129,21 @@ class YouTubeAPIService {
       }
       
       const videos: YouTubeVideo[] = videosData.items.map((item: Record<string, unknown>) => ({
-        id: item.id,
-        title: item.snippet.title,
-        description: item.snippet.description,
-        publishedAt: item.snippet.publishedAt,
-        thumbnails: item.snippet.thumbnails,
-        channelTitle: item.snippet.channelTitle,
-        channelId: item.snippet.channelId,
-        tags: item.snippet.tags || [],
-        categoryId: item.snippet.categoryId,
-        defaultLanguage: item.snippet.defaultLanguage,
-        defaultAudioLanguage: item.snippet.defaultAudioLanguage,
-        duration: item.contentDetails?.duration,
-        viewCount: item.statistics?.viewCount,
-        likeCount: item.statistics?.likeCount,
-        commentCount: item.statistics?.commentCount
+        id: (item.id as string),
+        title: ((item.snippet as Record<string, unknown>).title as string),
+        description: ((item.snippet as Record<string, unknown>).description as string),
+        publishedAt: ((item.snippet as Record<string, unknown>).publishedAt as string),
+        thumbnails: (item.snippet as Record<string, unknown>).thumbnails as Record<string, unknown>,
+        channelTitle: ((item.snippet as Record<string, unknown>).channelTitle as string),
+        channelId: ((item.snippet as Record<string, unknown>).channelId as string),
+        tags: ((item.snippet as Record<string, unknown>).tags as string[]) || [],
+        categoryId: ((item.snippet as Record<string, unknown>).categoryId as string),
+        defaultLanguage: ((item.snippet as Record<string, unknown>).defaultLanguage as string),
+        defaultAudioLanguage: ((item.snippet as Record<string, unknown>).defaultAudioLanguage as string),
+        duration: (item.contentDetails as Record<string, unknown>)?.duration as string,
+        viewCount: (item.statistics as Record<string, unknown>)?.viewCount as string,
+        likeCount: (item.statistics as Record<string, unknown>)?.likeCount as string,
+        commentCount: (item.statistics as Record<string, unknown>)?.commentCount as string
       }))
       
       console.log(`Successfully fetched ${videos.length} videos from channel ${channelId}`)
@@ -177,11 +177,11 @@ class YouTubeAPIService {
         throw new Error(`Channel not found: ${channelUsername}`)
       }
       
-      const channelId = channelSearchData.items[0].id.channelId
-      console.log(`Found channel ID: ${channelId}`)
+      const channelId = (channelSearchData.items[0] as Record<string, unknown>).id as { channelId: string }
+      console.log(`Found channel ID: ${channelId.channelId}`)
       
       // Now get videos from the channel
-      return await this.getChannelVideos(channelId, maxResults)
+      return await this.getChannelVideos(channelId.channelId, maxResults)
       
     } catch (error) {
       console.error(`Error searching for channel videos ${channelUsername}:`, error)
@@ -236,17 +236,17 @@ class YouTubeAPIService {
         return null
       }
       
-      const item = data.items[0]
+      const item = data.items[0] as Record<string, unknown>
       return {
-        id: item.id,
-        title: item.snippet.title,
-        description: item.snippet.description,
-        customUrl: item.snippet.customUrl,
-        publishedAt: item.snippet.publishedAt,
-        thumbnails: item.snippet.thumbnails,
-        subscriberCount: item.statistics?.subscriberCount,
-        videoCount: item.statistics?.videoCount,
-        viewCount: item.statistics?.viewCount
+        id: item.id as string,
+        title: ((item.snippet as Record<string, unknown>).title as string),
+        description: ((item.snippet as Record<string, unknown>).description as string),
+        customUrl: ((item.snippet as Record<string, unknown>).customUrl as string),
+        publishedAt: ((item.snippet as Record<string, unknown>).publishedAt as string),
+        thumbnails: (item.snippet as Record<string, unknown>).thumbnails as Record<string, unknown>,
+        subscriberCount: (item.statistics as Record<string, unknown>)?.subscriberCount as string,
+        videoCount: (item.statistics as Record<string, unknown>)?.videoCount as string,
+        viewCount: (item.statistics as Record<string, unknown>)?.viewCount as string
       }
       
     } catch (error) {
