@@ -107,17 +107,17 @@ export class DailyScheduler {
       
       const duration = Date.now() - startTime
       
-      console.log('✅ [SCHEDULER] Daily ingestion completed successfully:', {
-        ingestionId,
-        duration: `${duration}ms`,
-        result: {
-          totalProcessed: result.totalProcessed,
-          newItems: result.newItems,
-          updatedItems: result.updatedItems,
-          skippedItems: result.skippedItems
-        },
-        nextScheduledTime: this.schedulerState.nextScheduledTime.toISOString()
-      })
+             console.log('✅ [SCHEDULER] Daily ingestion completed successfully:', {
+         ingestionId,
+         duration: `${duration}ms`,
+         result: {
+           totalVideos: result.totalVideos,
+           newVideos: result.newVideos,
+           updatedVideos: result.updatedVideos,
+           skippedVideos: result.skippedVideos
+         },
+         nextScheduledTime: this.schedulerState.nextScheduledTime.toISOString()
+       })
 
       // Log to database for tracking
       await this.logIngestionToDatabase(ingestionId, 'success', duration, result)
