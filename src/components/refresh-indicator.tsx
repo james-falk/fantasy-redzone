@@ -47,6 +47,9 @@ export default function RefreshIndicator({
   
   // Use ref to track the latest check time without causing re-renders
   const lastCheckTimeRef = useRef<Date>(new Date())
+  
+  // Use ref to store the latest performRefreshCheck function
+  const performRefreshCheckRef = useRef<() => Promise<RefreshCheckResponse | null>>()
 
   /**
    * Performs a refresh check by calling the API
@@ -99,10 +102,13 @@ export default function RefreshIndicator({
       console.error('❌ [FRONTEND] Refresh check failed:', errorMsg)
       setError(errorMsg)
       return null
-    } finally {
-      setIsChecking(false)
-    }
-  }, []) // Remove lastCheckTime dependency
+         } finally {
+       setIsChecking(false)
+     }
+   }, []) // Remove lastCheckTime dependency
+   
+   // Store the latest function in ref
+   performRefreshCheckRef.current = performRefreshCheck
 
   /**
    * Triggers a manual refresh
@@ -110,13 +116,15 @@ export default function RefreshIndicator({
   const handleManualRefresh = useCallback(async () => {
     console.log('🔄 [FRONTEND] Manual refresh triggered')
     
-    const result = await performRefreshCheck()
-    
-    if (result?.newDataAvailable && onRefresh) {
-      console.log('🔄 [FRONTEND] Calling onRefresh callback...')
-      onRefresh()
+    if (performRefreshCheckRef.current) {
+      const result = await performRefreshCheckRef.current()
+      
+      if (result?.newDataAvailable && onRefresh) {
+        console.log('🔄 [FRONTEND] Calling onRefresh callback...')
+        onRefresh()
+      }
     }
-  }, [performRefreshCheck, onRefresh])
+  }, [onRefresh]) // Remove performRefreshCheck dependency
 
   /**
    * Formats time since last resource
@@ -157,11 +165,15 @@ export default function RefreshIndicator({
     console.log('🔄 [FRONTEND] Setting up refresh polling every', pollingInterval, 'ms')
     
     // Perform initial check
-    performRefreshCheck()
+    if (performRefreshCheckRef.current) {
+      performRefreshCheckRef.current()
+    }
     
     // Set up interval
     const interval = setInterval(() => {
-      performRefreshCheck()
+      if (performRefreshCheckRef.current) {
+        performRefreshCheckRef.current()
+      }
     }, pollingInterval)
     
     // Cleanup on unmount
@@ -169,7 +181,7 @@ export default function RefreshIndicator({
       console.log('🔄 [FRONTEND] Cleaning up refresh polling')
       clearInterval(interval)
     }
-  }, [pollingInterval]) // Remove performRefreshCheck from dependencies
+  }, [pollingInterval]) // Only depend on pollingInterval
 
   return (
     <div className={`refresh-indicator ${className}`}>
