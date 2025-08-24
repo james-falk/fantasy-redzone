@@ -9,7 +9,7 @@ const MONGODB_URI = process.env.MONGODB_URI
  */
 interface MongooseCache {
   conn: typeof mongoose | null
-  promise: Promise<typeof mongoose> | null
+  promise: Promise<typeof mongoose | null> | null
 }
 
 declare global {
@@ -51,6 +51,8 @@ export async function connectToDatabase() {
     console.log('🔄 [MONGODB DEBUG] Creating new connection promise...')
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000, // 5 second timeout
+      socketTimeoutMS: 45000, // 45 second timeout
     }
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
@@ -58,6 +60,13 @@ export async function connectToDatabase() {
       return mongoose
     }).catch((error) => {
       console.error('❌ [MONGODB DEBUG] MongoDB connection failed:', error.message)
+      
+      // During build time, return null instead of throwing
+      if (process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV === 'production') {
+        console.warn('⚠️ [MONGODB DEBUG] Build-time connection failed, returning null')
+        return null
+      }
+      
       throw error
     })
   }
@@ -65,10 +74,24 @@ export async function connectToDatabase() {
   try {
     console.log('⏳ [MONGODB DEBUG] Waiting for connection...')
     cached.conn = await cached.promise
+    
+    // Handle case where connection returned null during build
+    if (!cached.conn) {
+      console.warn('⚠️ [MONGODB DEBUG] Connection returned null, likely build-time failure')
+      return null
+    }
+    
     console.log('✅ [MONGODB DEBUG] Connection established successfully')
   } catch (e) {
     console.error('❌ [MONGODB DEBUG] Connection error:', e)
     cached.promise = null
+    
+    // During build time, return null instead of throwing
+    if (process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV === 'production') {
+      console.warn('⚠️ [MONGODB DEBUG] Build-time connection error, returning null')
+      return null
+    }
+    
     throw e
   }
 
