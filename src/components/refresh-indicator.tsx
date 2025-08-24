@@ -32,8 +32,8 @@ interface RefreshIndicatorProps {
 
 export default function RefreshIndicator({
   onRefresh,
-  pollingInterval = 60 * 60 * 1000, // 1 hour default
-  showStatus = true,
+  pollingInterval = 5 * 60 * 60 * 1000, // 5 hours default
+  showStatus = false,
   className = ''
 }: RefreshIndicatorProps) {
   const [lastCheckTime, setLastCheckTime] = useState<Date>(new Date())
