@@ -14,7 +14,7 @@ interface SchedulerResponse {
     successfulIngestions: number
     failedIngestions: number
     timeUntilNextIngestion: number
-  }
+  } | null
   environment: string
   timestamp: string
 }
