@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import FeedSource from '@/models/FeedSource'
-import { Types } from 'mongoose'
+import { Types, UpdateWriteOpResult, DeleteResult } from 'mongoose'
 
 // POST /api/feedsources/bulk - Bulk create feed sources
 export async function POST(request: NextRequest) {
@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest) {
       )
     }
     
-    let result: any
+    let result: UpdateWriteOpResult | DeleteResult
     
     switch (action) {
       case 'enable':
@@ -135,11 +135,13 @@ export async function PUT(request: NextRequest) {
     
     if (action === 'delete') {
       // DeleteResult has deletedCount
-      resultData.deletedCount = result.deletedCount || 0
+      const deleteResult = result as DeleteResult
+      resultData.deletedCount = deleteResult.deletedCount || 0
     } else {
       // UpdateWriteOpResult has matchedCount and modifiedCount
-      resultData.matchedCount = result.matchedCount || 0
-      resultData.modifiedCount = result.modifiedCount || 0
+      const updateResult = result as UpdateWriteOpResult
+      resultData.matchedCount = updateResult.matchedCount || 0
+      resultData.modifiedCount = updateResult.modifiedCount || 0
     }
     
     return NextResponse.json({
