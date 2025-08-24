@@ -4,7 +4,17 @@ import Resource from '@/models/Resource'
 
 export async function POST() {
   try {
-    await connectToDatabase()
+    const connection = await connectToDatabase()
+    
+    if (!connection) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database connection not available during build time'
+        },
+        { status: 503 }
+      )
+    }
 
     // Remove ALL resources from the database
     const deleteResult = await Resource.deleteMany({})
@@ -35,7 +45,17 @@ export async function POST() {
 // GET - Show current database status
 export async function GET() {
   try {
-    await connectToDatabase()
+    const connection = await connectToDatabase()
+    
+    if (!connection) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database connection not available during build time'
+        },
+        { status: 503 }
+      )
+    }
 
     const totalResources = await Resource.countDocuments({})
     const activeResources = await Resource.countDocuments({ isActive: true })

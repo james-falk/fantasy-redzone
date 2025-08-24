@@ -11,34 +11,52 @@ import Resource from '@/models/Resource'
 
 export default async function Home() {
   // Fetch YouTube videos directly from database
-  await connectToDatabase()
+  const connection = await connectToDatabase()
   
-  const youtubeVideos = await Resource.find({
-    source: 'YouTube',
-    isActive: true
-  })
-  .sort({ pubDate: -1 })
-  .limit(30)
-  .lean()
+  let transformedVideos: Array<{
+    id: string
+    title: string
+    shortDescription: string
+    cover: string
+    category: string
+    publishDate: string
+    source: 'youtube'
+    url: string
+    sourceName: string
+    author: string
+    viewCount?: number
+    duration?: string
+    tags: string[]
+  }> = []
+  
+  if (connection) {
+    const youtubeVideos = await Resource.find({
+      source: 'YouTube',
+      isActive: true
+    })
+    .sort({ pubDate: -1 })
+    .limit(30)
+    .lean()
 
-  // Transform to the format expected by components
-  const transformedVideos = youtubeVideos.map((video: Record<string, unknown>) => ({
-    id: (video._id as { toString(): string })?.toString() || '',
-    title: (video.title as string) || '',
-    shortDescription: ((video.description as string) || '').length > 150 
-      ? ((video.description as string) || '').substring(0, 150) + '...' 
-      : (video.description as string) || '',
-    cover: (video.image as string) || '',
-    category: (video.category as string) || '',
-    publishDate: (video.pubDate as string) || '',
-    source: 'youtube' as const,
-    url: (video.url as string) || '',
-    sourceName: (video.author as string) || '',
-    author: (video.author as string) || '',
-    viewCount: (video.rawFeedItem as Record<string, unknown>)?.viewCount ? parseInt((video.rawFeedItem as Record<string, unknown>).viewCount as string) : undefined,
-    duration: (video.rawFeedItem as Record<string, unknown>)?.duration ? formatDuration((video.rawFeedItem as Record<string, unknown>).duration as string) : undefined,
-    tags: (video.tags as string[]) || []
-  }))
+    // Transform to the format expected by components
+    transformedVideos = youtubeVideos.map((video: Record<string, unknown>) => ({
+      id: (video._id as { toString(): string })?.toString() || '',
+      title: (video.title as string) || '',
+      shortDescription: ((video.description as string) || '').length > 150 
+        ? ((video.description as string) || '').substring(0, 150) + '...' 
+        : (video.description as string) || '',
+      cover: (video.image as string) || '',
+      category: (video.category as string) || '',
+      publishDate: (video.pubDate as string) || '',
+      source: 'youtube' as const,
+      url: (video.url as string) || '',
+      sourceName: (video.author as string) || '',
+      author: (video.author as string) || '',
+      viewCount: (video.rawFeedItem as Record<string, unknown>)?.viewCount ? parseInt((video.rawFeedItem as Record<string, unknown>).viewCount as string) : undefined,
+      duration: (video.rawFeedItem as Record<string, unknown>)?.duration ? formatDuration((video.rawFeedItem as Record<string, unknown>).duration as string) : undefined,
+      tags: (video.tags as string[]) || []
+    }))
+  }
 
   // Use the first 5 videos as featured content for the carousel
   const featuredContent = transformedVideos.slice(0, 5)
