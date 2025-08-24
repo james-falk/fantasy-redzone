@@ -9,23 +9,6 @@ import FeaturedCarousel from '@/components/featured-carousel'
 import { connectToDatabase } from '@/lib/mongodb'
 import Resource from '@/models/Resource'
 
-// Interface for the video object from MongoDB
-interface VideoDocument {
-  _id: { toString(): string }
-  title: string
-  description: string
-  image: string
-  category: string
-  pubDate: string
-  url: string
-  author: string
-  rawFeedItem?: {
-    viewCount?: string
-    duration?: string
-  }
-  tags?: string[]
-}
-
 export default async function Home() {
   // Fetch YouTube videos directly from database
   await connectToDatabase()
@@ -39,22 +22,22 @@ export default async function Home() {
   .lean()
 
   // Transform to the format expected by components
-  const transformedVideos = youtubeVideos.map((video: VideoDocument) => ({
-    id: video._id.toString(),
-    title: video.title,
-    shortDescription: video.description.length > 150 
-      ? video.description.substring(0, 150) + '...' 
-      : video.description,
-    cover: video.image,
-    category: video.category,
-    publishDate: video.pubDate,
+  const transformedVideos = youtubeVideos.map((video: Record<string, unknown>) => ({
+    id: (video._id as { toString(): string })?.toString() || '',
+    title: (video.title as string) || '',
+    shortDescription: ((video.description as string) || '').length > 150 
+      ? ((video.description as string) || '').substring(0, 150) + '...' 
+      : (video.description as string) || '',
+    cover: (video.image as string) || '',
+    category: (video.category as string) || '',
+    publishDate: (video.pubDate as string) || '',
     source: 'youtube' as const,
-    url: video.url,
-    sourceName: video.author,
-    author: video.author,
-    viewCount: video.rawFeedItem?.viewCount ? parseInt(video.rawFeedItem.viewCount) : undefined,
-    duration: video.rawFeedItem?.duration ? formatDuration(video.rawFeedItem.duration) : undefined,
-    tags: video.tags || []
+    url: (video.url as string) || '',
+    sourceName: (video.author as string) || '',
+    author: (video.author as string) || '',
+    viewCount: (video.rawFeedItem as Record<string, unknown>)?.viewCount ? parseInt((video.rawFeedItem as Record<string, unknown>).viewCount as string) : undefined,
+    duration: (video.rawFeedItem as Record<string, unknown>)?.duration ? formatDuration((video.rawFeedItem as Record<string, unknown>).duration as string) : undefined,
+    tags: (video.tags as string[]) || []
   }))
 
   // Use the first 5 videos as featured content for the carousel
