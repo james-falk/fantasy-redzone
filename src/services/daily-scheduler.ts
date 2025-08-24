@@ -1,5 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb'
-import YouTubeIngestionService from './youtube-ingestion'
+import YouTubeIngestionService, { IngestionResult } from './youtube-ingestion'
 import { getEnvVar } from '@/lib/environment'
 
 interface SchedulerState {
@@ -10,6 +10,16 @@ interface SchedulerState {
   totalIngestions: number
   successfulIngestions: number
   failedIngestions: number
+}
+
+interface IngestionLogData {
+  ingestionId: string
+  timestamp: Date
+  status: 'success' | 'failed'
+  duration: number
+  result: IngestionResult | null
+  error: string | null
+  environment: string
 }
 
 /**
@@ -149,7 +159,7 @@ export class DailyScheduler {
     ingestionId: string, 
     status: 'success' | 'failed', 
     duration: number, 
-    result?: any, 
+    result?: IngestionResult | null, 
     error?: string
   ): Promise<void> {
     try {
@@ -160,7 +170,7 @@ export class DailyScheduler {
       }
 
       // Create ingestion log document
-      const logData = {
+      const logData: IngestionLogData = {
         ingestionId,
         timestamp: new Date(),
         status,
