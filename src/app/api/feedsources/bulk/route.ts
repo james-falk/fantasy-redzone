@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import FeedSource from '@/models/FeedSource'
+import { Types } from 'mongoose'
 
 // POST /api/feedsources/bulk - Bulk create feed sources
 export async function POST(request: NextRequest) {
@@ -10,11 +11,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { sources } = body
     
-    if (!Array.isArray(sources) || sources.length === 0) {
+    if (!sources || !Array.isArray(sources) || sources.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Sources array is required and must not be empty'
+          error: 'Sources array is required'
         },
         { status: 400 }
       )
@@ -26,54 +27,29 @@ export async function POST(request: NextRequest) {
       errors: [] as string[]
     }
     
-    for (const source of sources) {
+    for (const sourceData of sources) {
       try {
-        const { type, identifier, name, description, category, maxResults, enabled = true } = source
-        
-        // Validation
-        if (!type || !identifier || !name) {
-          results.errors.push(`Missing required fields for source: ${name || identifier}`)
-          results.skipped++
-          continue
-        }
-        
-        if (!['youtube', 'rss'].includes(type)) {
-          results.errors.push(`Invalid type "${type}" for source: ${name}`)
-          results.skipped++
-          continue
-        }
-        
-        // Check if identifier already exists
-        const existingSource = await FeedSource.findOne({ identifier })
+        // Check if source already exists
+        const existingSource = await FeedSource.findOne({ identifier: sourceData.identifier })
         if (existingSource) {
-          results.errors.push(`Source with identifier "${identifier}" already exists`)
           results.skipped++
           continue
         }
         
-        // Create new feed source
-        const feedSource = new FeedSource({
-          type,
-          identifier,
-          name,
-          description,
-          category,
-          maxResults: maxResults || 25,
-          enabled
-        })
-        
+        // Create new source
+        const feedSource = new FeedSource(sourceData)
         await feedSource.save()
         results.created++
         
       } catch (error) {
-        results.errors.push(`Error creating source: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        results.errors.push(`Error creating ${sourceData.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
         results.skipped++
       }
     }
     
     return NextResponse.json({
       success: true,
-      message: `Bulk operation completed. Created: ${results.created}, Skipped: ${results.skipped}`,
+      message: 'Bulk create completed',
       results
     })
     
@@ -107,7 +83,7 @@ export async function PUT(request: NextRequest) {
       )
     }
     
-    let result
+    let result: any
     
     switch (action) {
       case 'enable':
@@ -154,14 +130,22 @@ export async function PUT(request: NextRequest) {
         )
     }
     
+    // Handle different result types
+    const resultData: Record<string, number> = {}
+    
+    if (action === 'delete') {
+      // DeleteResult has deletedCount
+      resultData.deletedCount = result.deletedCount || 0
+    } else {
+      // UpdateWriteOpResult has matchedCount and modifiedCount
+      resultData.matchedCount = result.matchedCount || 0
+      resultData.modifiedCount = result.modifiedCount || 0
+    }
+    
     return NextResponse.json({
       success: true,
       message: `Bulk ${action} completed successfully`,
-      result: {
-        matchedCount: result.matchedCount,
-        modifiedCount: result.modifiedCount,
-        deletedCount: result.deletedCount
-      }
+      result: resultData
     })
     
   } catch (error) {
