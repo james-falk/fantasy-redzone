@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface RefreshCheckResponse {
@@ -41,6 +41,9 @@ export default function RefreshIndicator({
   const [lastResponse, setLastResponse] = useState<RefreshCheckResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showNewContentAlert, setShowNewContentAlert] = useState(false)
+  
+  // Use ref to track the latest check time without causing re-renders
+  const lastCheckTimeRef = useRef<Date>(new Date())
 
   /**
    * Performs a refresh check by calling the API
@@ -52,7 +55,7 @@ export default function RefreshIndicator({
       
       console.log('🔄 [FRONTEND] Performing refresh check...')
       
-      const response = await fetch(`/api/refresh-check?lastCheck=${lastCheckTime.toISOString()}`)
+      const response = await fetch(`/api/refresh-check?lastCheck=${lastCheckTimeRef.current.toISOString()}`)
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
@@ -60,7 +63,11 @@ export default function RefreshIndicator({
       
       const data: RefreshCheckResponse = await response.json()
       setLastResponse(data)
-      setLastCheckTime(new Date())
+      
+      // Update both state and ref
+      const newCheckTime = new Date()
+      setLastCheckTime(newCheckTime)
+      lastCheckTimeRef.current = newCheckTime
       
       console.log('✅ [FRONTEND] Refresh check completed:', {
         newDataAvailable: data.newDataAvailable,
@@ -89,7 +96,7 @@ export default function RefreshIndicator({
     } finally {
       setIsChecking(false)
     }
-  }, [lastCheckTime])
+  }, []) // Remove lastCheckTime dependency
 
   /**
    * Triggers a manual refresh
@@ -156,7 +163,7 @@ export default function RefreshIndicator({
       console.log('🔄 [FRONTEND] Cleaning up refresh polling')
       clearInterval(interval)
     }
-  }, [pollingInterval, performRefreshCheck])
+  }, [pollingInterval]) // Remove performRefreshCheck dependency
 
   return (
     <div className={`refresh-indicator ${className}`}>
