@@ -1,5 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb'
-import { YouTubeIngestionService } from './youtube-ingestion'
+import YouTubeIngestionService from './youtube-ingestion'
 import { getEnvVar } from '@/lib/environment'
 
 interface SchedulerState {
@@ -149,7 +149,7 @@ export class DailyScheduler {
     ingestionId: string, 
     status: 'success' | 'failed', 
     duration: number, 
-    result?: any, 
+    result?: Record<string, unknown>, 
     error?: string
   ): Promise<void> {
     try {
