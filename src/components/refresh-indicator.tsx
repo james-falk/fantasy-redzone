@@ -169,7 +169,7 @@ export default function RefreshIndicator({
       console.log('🔄 [FRONTEND] Cleaning up refresh polling')
       clearInterval(interval)
     }
-  }, [pollingInterval, performRefreshCheck])
+  }, [pollingInterval]) // Remove performRefreshCheck from dependencies
 
   return (
     <div className={`refresh-indicator ${className}`}>
