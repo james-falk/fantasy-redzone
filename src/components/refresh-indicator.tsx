@@ -49,7 +49,7 @@ export default function RefreshIndicator({
   const lastCheckTimeRef = useRef<Date>(new Date())
   
   // Use ref to store the latest performRefreshCheck function
-  const performRefreshCheckRef = useRef<() => Promise<RefreshCheckResponse | null>>()
+  const performRefreshCheckRef = useRef<() => Promise<RefreshCheckResponse | null> | undefined>(undefined)
 
   /**
    * Performs a refresh check by calling the API

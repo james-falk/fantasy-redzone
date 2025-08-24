@@ -16,7 +16,6 @@ const eslintConfig = [
       '@typescript-eslint/no-unused-vars': 'off',
       '@next/next/no-html-link-for-pages': 'off',
       // TypeScript best practices
-      '@typescript-eslint/prefer-const': 'error',
       '@typescript-eslint/no-unnecessary-type-assertion': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       // Strict any usage - only allow with explicit comments
