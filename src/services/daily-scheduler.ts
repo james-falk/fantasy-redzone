@@ -149,7 +149,7 @@ export class DailyScheduler {
     ingestionId: string, 
     status: 'success' | 'failed', 
     duration: number, 
-    result?: Record<string, unknown>, 
+    result?: any, 
     error?: string
   ): Promise<void> {
     try {
