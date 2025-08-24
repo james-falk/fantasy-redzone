@@ -28,7 +28,7 @@ const ResourceSchema: Schema = new Schema(
   {
     title: { type: String, required: true },
     description: { type: String, default: "" },
-    url: { type: String, required: true, unique: true },
+    url: { type: String, required: true }, // Removed unique: true since we have a separate index
     image: { 
       type: String, 
       default: FALLBACK_IMAGE_URL,
