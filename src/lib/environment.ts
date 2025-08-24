@@ -18,8 +18,8 @@ export interface EnvironmentConfig {
   siteDescription: string
   
   // Authentication
-  nextAuthUrl: string
-  nextAuthSecret: string
+  nextAuthUrl?: string
+  nextAuthSecret?: string
   googleClientId?: string
   googleClientSecret?: string
   
@@ -54,8 +54,6 @@ function validateEnvironment(environment: EnvironmentConfig): void {
     'siteUrl',
     'siteName', 
     'siteDescription',
-    'nextAuthUrl',
-    'nextAuthSecret',
     'mongodbUri',
     'youtubeApiKey'
   ]
