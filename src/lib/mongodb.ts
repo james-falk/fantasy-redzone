@@ -1,11 +1,27 @@
 import mongoose from 'mongoose'
 
+/**
+ * MongoDB Connection Utility
+ * 
+ * This module provides a unified database connection that works identically
+ * across local development and production environments.
+ * 
+ * ENVIRONMENT HANDLING:
+ * - Local Development: Uses MONGODB_URI from .env.local
+ * - Production: Uses MONGODB_URI from Vercel environment variables
+ * - Build Time: Gracefully handles missing URI during Next.js build process
+ * 
+ * CONNECTION CACHING:
+ * - Prevents multiple connections in serverless environments
+ * - Maintains connection across hot reloads in development
+ * - Implements proper connection pooling and timeout handling
+ */
+
 const MONGODB_URI = process.env.MONGODB_URI
 
 /**
- * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections growing exponentially
- * during API Route usage.
+ * Global cache interface for maintaining connection across hot reloads
+ * in development and preventing connection proliferation in serverless environments
  */
 interface MongooseCache {
   conn: typeof mongoose | null
@@ -22,78 +38,111 @@ if (!global.mongoose) {
   global.mongoose = cached
 }
 
-export async function connectToDatabase() {
-  console.log('🔗 [MONGODB DEBUG] Attempting database connection...')
-  console.log('🔗 [MONGODB DEBUG] Environment:', {
-    nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV,
+/**
+ * Connects to MongoDB using environment-appropriate configuration
+ * 
+ * @returns Promise<typeof mongoose | null> - Mongoose instance or null if build-time
+ * @throws Error - If connection fails in runtime environments
+ */
+export async function connectToDatabase(): Promise<typeof mongoose | null> {
+  const environment = process.env.NODE_ENV || 'development'
+  const isProduction = environment === 'production'
+  const isVercel = !!process.env.VERCEL_ENV
+  
+  console.log('🔗 [MONGODB] Connection attempt initiated', {
+    environment,
+    isVercel,
     hasMongoUri: !!MONGODB_URI,
     mongoUriLength: MONGODB_URI?.length || 0
   })
 
-  // Check if we're in a build environment and skip connection
-  if (process.env.NODE_ENV === 'production' && !MONGODB_URI) {
-    console.warn('⚠️ [MONGODB DEBUG] MONGODB_URI not available during build time, skipping connection')
+  // Handle build-time scenarios (Next.js static generation)
+  if (isProduction && !MONGODB_URI) {
+    console.warn('⚠️ [MONGODB] Build-time: MONGODB_URI not available, skipping connection')
     return null
   }
 
+  // Validate MongoDB URI presence
   if (!MONGODB_URI) {
-    console.error('❌ [MONGODB DEBUG] MONGODB_URI environment variable is missing')
-    throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
+    const errorMessage = isProduction 
+      ? 'MONGODB_URI environment variable is not configured in production'
+      : 'Please define the MONGODB_URI environment variable in .env.local for local development'
+    
+    console.error('❌ [MONGODB] Connection failed:', errorMessage)
+    throw new Error(errorMessage)
   }
 
+  // Return cached connection if available
   if (cached.conn) {
-    console.log('✅ [MONGODB DEBUG] Using cached connection')
+    console.log('✅ [MONGODB] Using existing cached connection')
     return cached.conn
   }
 
+  // Create new connection promise if none exists
   if (!cached.promise) {
-    console.log('🔄 [MONGODB DEBUG] Creating new connection promise...')
-    const opts = {
+    console.log('🔄 [MONGODB] Establishing new database connection...')
+    
+    const connectionOptions = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 5000, // 5 second timeout
-      socketTimeoutMS: 45000, // 45 second timeout
+      serverSelectionTimeoutMS: 5000, // 5 second timeout for server selection
+      socketTimeoutMS: 45000, // 45 second timeout for socket operations
+      maxPoolSize: 10, // Maximum number of connections in the pool
+      minPoolSize: 1, // Minimum number of connections in the pool
     }
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log('✅ [MONGODB DEBUG] Successfully connected to MongoDB')
-      return mongoose
-    }).catch((error) => {
-      console.error('❌ [MONGODB DEBUG] MongoDB connection failed:', error.message)
-      
-      // During build time, return null instead of throwing
-      if (process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV === 'production') {
-        console.warn('⚠️ [MONGODB DEBUG] Build-time connection failed, returning null')
-        return null
-      }
-      
-      throw error
-    })
+    cached.promise = mongoose.connect(MONGODB_URI, connectionOptions)
+      .then((mongoose) => {
+        console.log('✅ [MONGODB] Successfully connected to database')
+        return mongoose
+      })
+      .catch((error) => {
+        console.error('❌ [MONGODB] Connection failed:', error.message)
+        
+        // Handle build-time connection failures gracefully
+        if (isProduction && isVercel) {
+          console.warn('⚠️ [MONGODB] Build-time connection failed, returning null')
+          return null
+        }
+        
+        throw error
+      })
   }
 
   try {
-    console.log('⏳ [MONGODB DEBUG] Waiting for connection...')
+    console.log('⏳ [MONGODB] Waiting for connection to establish...')
     cached.conn = await cached.promise
     
-    // Handle case where connection returned null during build
+    // Handle null connection from build-time scenarios
     if (!cached.conn) {
-      console.warn('⚠️ [MONGODB DEBUG] Connection returned null, likely build-time failure')
+      console.warn('⚠️ [MONGODB] Connection returned null (likely build-time)')
       return null
     }
     
-    console.log('✅ [MONGODB DEBUG] Connection established successfully')
-  } catch (e) {
-    console.error('❌ [MONGODB DEBUG] Connection error:', e)
+    console.log('✅ [MONGODB] Database connection ready')
+    return cached.conn
+    
+  } catch (error) {
+    console.error('❌ [MONGODB] Connection error:', error)
     cached.promise = null
     
-    // During build time, return null instead of throwing
-    if (process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV === 'production') {
-      console.warn('⚠️ [MONGODB DEBUG] Build-time connection error, returning null')
+    // Handle build-time errors gracefully
+    if (isProduction && isVercel) {
+      console.warn('⚠️ [MONGODB] Build-time connection error, returning null')
       return null
     }
     
-    throw e
+    throw error
   }
+}
 
-  return cached.conn
+/**
+ * Disconnects from MongoDB (useful for testing or cleanup)
+ */
+export async function disconnectFromDatabase(): Promise<void> {
+  if (cached.conn) {
+    await mongoose.disconnect()
+    cached.conn = null
+    cached.promise = null
+    console.log('🔌 [MONGODB] Database connection closed')
+  }
 }

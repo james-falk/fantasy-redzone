@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "env:check": "node scripts/sync-env.js check",
+    "env:validate": "node scripts/sync-env.js validate",
+    "env:template": "node scripts/sync-env.js template"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.0.6",
