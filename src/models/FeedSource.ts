@@ -76,13 +76,13 @@ FeedSourceSchema.index({ category: 1, enabled: 1 })
 FeedSourceSchema.pre("save", function(next) {
   if (this.type === "youtube") {
     // YouTube channel ID format validation (starts with UC)
-    if (!this.identifier.startsWith("UC")) {
+    if (!(this.identifier as string).startsWith("UC")) {
       return next(new Error("YouTube channel ID must start with 'UC'"))
     }
   } else if (this.type === "rss") {
     // Basic URL validation for RSS feeds
     try {
-      new URL(this.identifier)
+      new URL(this.identifier as string)
     } catch {
       return next(new Error("RSS identifier must be a valid URL"))
     }
