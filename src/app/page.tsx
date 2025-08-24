@@ -9,6 +9,23 @@ import FeaturedCarousel from '@/components/featured-carousel'
 import { connectToDatabase } from '@/lib/mongodb'
 import Resource from '@/models/Resource'
 
+// Interface for the video object from MongoDB
+interface VideoDocument {
+  _id: { toString(): string }
+  title: string
+  description: string
+  image: string
+  category: string
+  pubDate: string
+  url: string
+  author: string
+  rawFeedItem?: {
+    viewCount?: string
+    duration?: string
+  }
+  tags?: string[]
+}
+
 export default async function Home() {
   // Fetch YouTube videos directly from database
   await connectToDatabase()
@@ -22,7 +39,7 @@ export default async function Home() {
   .lean()
 
   // Transform to the format expected by components
-  const transformedVideos = youtubeVideos.map((video: Record<string, unknown>) => ({
+  const transformedVideos = youtubeVideos.map((video: VideoDocument) => ({
     id: video._id.toString(),
     title: video.title,
     shortDescription: video.description.length > 150 
