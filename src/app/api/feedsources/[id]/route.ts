@@ -5,13 +5,13 @@ import FeedSource from '@/models/FeedSource'
 // GET /api/feedsources/[id] - Get a specific feed source
 export async function GET(
   request: NextRequest,
-  { params }: Promise<{ params: { id: string } }>
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase()
     
-    const { params: resolvedParams } = await params
-    const feedSource = await FeedSource.findById(resolvedParams.id)
+    const { id } = await params
+    const feedSource = await FeedSource.findById(id)
     
     if (!feedSource) {
       return NextResponse.json(
@@ -43,17 +43,17 @@ export async function GET(
 // PUT /api/feedsources/[id] - Update a feed source
 export async function PUT(
   request: NextRequest,
-  { params }: Promise<{ params: { id: string } }>
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase()
     
-    const { params: resolvedParams } = await params
+    const { id } = await params
     const body = await request.json()
     const { type, identifier, name, description, category, maxResults, enabled } = body
     
     // Find the feed source
-    const feedSource = await FeedSource.findById(resolvedParams.id)
+    const feedSource = await FeedSource.findById(id)
     
     if (!feedSource) {
       return NextResponse.json(
@@ -133,13 +133,13 @@ export async function PUT(
 // DELETE /api/feedsources/[id] - Delete a feed source
 export async function DELETE(
   request: NextRequest,
-  { params }: Promise<{ params: { id: string } }>
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase()
     
-    const { params: resolvedParams } = await params
-    const feedSource = await FeedSource.findById(resolvedParams.id)
+    const { id } = await params
+    const feedSource = await FeedSource.findById(id)
     
     if (!feedSource) {
       return NextResponse.json(
@@ -151,13 +151,13 @@ export async function DELETE(
       )
     }
     
-    await FeedSource.findByIdAndDelete(resolvedParams.id)
+    await FeedSource.findByIdAndDelete(id)
     
     return NextResponse.json({
       success: true,
       message: 'Feed source deleted successfully',
       data: {
-        id: resolvedParams.id,
+        id: id,
         name: feedSource.name,
         type: feedSource.type
       }

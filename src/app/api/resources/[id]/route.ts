@@ -6,13 +6,13 @@ import { processResourceData, validateResourceData } from '@/utils/resource-help
 // GET - Fetch a single resource by ID
 export async function GET(
   request: NextRequest,
-  { params }: Promise<{ params: { id: string } }>
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase()
     
-    const { params: resolvedParams } = await params
-    const resource = await Resource.findById(resolvedParams.id)
+    const { id } = await params
+    const resource = await Resource.findById(id)
     
     if (!resource) {
       return NextResponse.json(
@@ -44,12 +44,12 @@ export async function GET(
 // PUT - Update a resource
 export async function PUT(
   request: NextRequest,
-  { params }: Promise<{ params: { id: string } }>
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase()
     
-    const { params: resolvedParams } = await params
+    const { id } = await params
     const body = await request.json()
     
     // Validate the input data
@@ -72,7 +72,7 @@ export async function PUT(
     if (processedData.url) {
       const existingResource = await Resource.findOne({ 
         url: processedData.url,
-        _id: { $ne: resolvedParams.id } // Exclude current resource
+        _id: { $ne: id } // Exclude current resource
       })
       if (existingResource) {
         return NextResponse.json(
@@ -87,7 +87,7 @@ export async function PUT(
     
     // Update the resource
     const updatedResource = await Resource.findByIdAndUpdate(
-      resolvedParams.id,
+      id,
       { ...processedData, updatedAt: new Date() },
       { new: true, runValidators: true }
     )
@@ -123,13 +123,13 @@ export async function PUT(
 // DELETE - Delete a resource
 export async function DELETE(
   request: NextRequest,
-  { params }: Promise<{ params: { id: string } }>
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase()
     
-    const { params: resolvedParams } = await params
-    const deletedResource = await Resource.findByIdAndDelete(resolvedParams.id)
+    const { id } = await params
+    const deletedResource = await Resource.findByIdAndDelete(id)
     
     if (!deletedResource) {
       return NextResponse.json(
