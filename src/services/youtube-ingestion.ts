@@ -27,6 +27,31 @@ export interface ChannelConfig {
   maxResults?: number
 }
 
+/**
+ * Logs ingestion operations with detailed information
+ */
+function logIngestionOperation(operation: string, details: {
+  sourceType: string
+  sourceName?: string
+  itemsFound?: number
+  itemsProcessed?: number
+  newItems?: number
+  updatedItems?: number
+  skippedItems?: number
+  duration?: number
+  success?: boolean
+  error?: string
+}) {
+  const timestamp = new Date().toISOString()
+  const logEntry = {
+    timestamp,
+    operation,
+    ...details
+  }
+  
+  console.log(`📊 [INGESTION] ${operation}:`, JSON.stringify(logEntry, null, 2))
+}
+
 class YouTubeIngestionService {
   private youtubeService: YouTubeService
   private feedSourceManager: FeedSourceManager
@@ -40,6 +65,7 @@ class YouTubeIngestionService {
    * Ingest videos from all enabled YouTube sources in the database
    */
   async ingestFromAllSources(): Promise<IngestionResult> {
+    const startTime = Date.now()
     const result: IngestionResult = {
       success: true,
       totalVideos: 0,
@@ -50,22 +76,30 @@ class YouTubeIngestionService {
       sources: []
     }
 
-    console.log('Starting YouTube ingestion from all enabled sources...')
+    logIngestionOperation('START_INGESTION', {
+      sourceType: 'YouTube'
+    })
 
     try {
       // Get all enabled YouTube sources
       const sources = await this.feedSourceManager.getEnabledSources('youtube')
       
       if (sources.length === 0) {
-        console.log('No enabled YouTube sources found')
+        logIngestionOperation('NO_SOURCES_FOUND', {
+          sourceType: 'YouTube',
+          itemsFound: 0
+        })
         return result
       }
 
-      console.log(`Found ${sources.length} enabled YouTube sources`)
+      logIngestionOperation('SOURCES_FOUND', {
+        sourceType: 'YouTube',
+        itemsFound: sources.length
+      })
 
       // Process each source
       for (const source of sources) {
-        const startTime = Date.now()
+        const sourceStartTime = Date.now()
         const sourceResult = {
           sourceId: source.id,
           sourceName: source.name,
@@ -77,7 +111,11 @@ class YouTubeIngestionService {
         }
 
         try {
-          console.log(`Processing source: ${source.name} (${source.identifier})`)
+          logIngestionOperation('PROCESSING_SOURCE', {
+            sourceType: 'YouTube',
+            sourceName: source.name,
+            itemsFound: 0
+          })
 
           // Fetch videos from the channel
           const videosResult = await this.youtubeService.getChannelVideos(
@@ -86,7 +124,12 @@ class YouTubeIngestionService {
           )
 
           sourceResult.videosFound = videosResult.videos.length
-          console.log(`Found ${videosResult.videos.length} videos from ${source.name}`)
+          
+          logIngestionOperation('VIDEOS_FETCHED', {
+            sourceType: 'YouTube',
+            sourceName: source.name,
+            itemsFound: videosResult.videos.length
+          })
 
           // Process each video
           for (const video of videosResult.videos) {
@@ -118,6 +161,20 @@ class YouTubeIngestionService {
             sourceResult.videosProcessed
           )
 
+          sourceResult.duration = Date.now() - sourceStartTime
+          
+          logIngestionOperation('SOURCE_COMPLETED', {
+            sourceType: 'YouTube',
+            sourceName: source.name,
+            itemsFound: sourceResult.videosFound,
+            itemsProcessed: sourceResult.videosProcessed,
+            newItems: result.newVideos,
+            updatedItems: result.updatedVideos,
+            skippedItems: result.skippedVideos,
+            duration: sourceResult.duration,
+            success: true
+          })
+
         } catch (error) {
           const errorMsg = `Error processing source ${source.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
           console.error(errorMsg)
@@ -125,24 +182,51 @@ class YouTubeIngestionService {
           sourceResult.error = errorMsg
           result.errors.push(errorMsg)
 
-          // Update ingestion status with error
           await this.feedSourceManager.updateIngestionStatus(
             source.id,
             false,
             0,
             errorMsg
           )
+
+          sourceResult.duration = Date.now() - sourceStartTime
+          
+          logIngestionOperation('SOURCE_FAILED', {
+            sourceType: 'YouTube',
+            sourceName: source.name,
+            duration: sourceResult.duration,
+            success: false,
+            error: errorMsg
+          })
         }
 
-        sourceResult.duration = Date.now() - startTime
         result.sources.push(sourceResult)
       }
 
-      console.log(`Ingestion completed. Total videos: ${result.totalVideos}, New: ${result.newVideos}, Updated: ${result.updatedVideos}, Skipped: ${result.skippedVideos}`)
+      const totalDuration = Date.now() - startTime
       
       if (result.errors.length > 0) {
         result.success = false
-        console.error(`Ingestion completed with ${result.errors.length} errors`)
+        logIngestionOperation('INGESTION_COMPLETED_WITH_ERRORS', {
+          sourceType: 'YouTube',
+          itemsFound: result.totalVideos,
+          newItems: result.newVideos,
+          updatedItems: result.updatedVideos,
+          skippedItems: result.skippedVideos,
+          duration: totalDuration,
+          success: false,
+          error: `${result.errors.length} errors occurred`
+        })
+      } else {
+        logIngestionOperation('INGESTION_COMPLETED_SUCCESSFULLY', {
+          sourceType: 'YouTube',
+          itemsFound: result.totalVideos,
+          newItems: result.newVideos,
+          updatedItems: result.updatedVideos,
+          skippedItems: result.skippedVideos,
+          duration: totalDuration,
+          success: true
+        })
       }
 
     } catch (error) {
@@ -150,6 +234,13 @@ class YouTubeIngestionService {
       console.error(errorMsg)
       result.success = false
       result.errors.push(errorMsg)
+      
+      logIngestionOperation('INGESTION_FAILED', {
+        sourceType: 'YouTube',
+        duration: Date.now() - startTime,
+        success: false,
+        error: errorMsg
+      })
     }
 
     return result
@@ -159,6 +250,7 @@ class YouTubeIngestionService {
    * Ingest videos from specific sources by ID
    */
   async ingestFromSourceIds(sourceIds: string[]): Promise<IngestionResult> {
+    const startTime = Date.now()
     const result: IngestionResult = {
       success: true,
       totalVideos: 0,
@@ -169,7 +261,10 @@ class YouTubeIngestionService {
       sources: []
     }
 
-    console.log(`Starting YouTube ingestion from ${sourceIds.length} specific sources...`)
+    logIngestionOperation('START_SOURCE_INGESTION', {
+      sourceType: 'YouTube',
+      itemsFound: sourceIds.length
+    })
 
     try {
       for (const sourceId of sourceIds) {
@@ -193,7 +288,7 @@ class YouTubeIngestionService {
           continue
         }
 
-        const startTime = Date.now()
+        const sourceStartTime = Date.now()
         const sourceResult = {
           sourceId: source.id,
           sourceName: source.name,
@@ -205,7 +300,11 @@ class YouTubeIngestionService {
         }
 
         try {
-          console.log(`Processing source: ${source.name} (${source.identifier})`)
+          logIngestionOperation('PROCESSING_SOURCE_BY_ID', {
+            sourceType: 'YouTube',
+            sourceName: source.name,
+            itemsFound: 0
+          })
 
           const videosResult = await this.youtubeService.getChannelVideos(
             source.identifier,
@@ -213,6 +312,12 @@ class YouTubeIngestionService {
           )
 
           sourceResult.videosFound = videosResult.videos.length
+
+          logIngestionOperation('VIDEOS_FETCHED_BY_ID', {
+            sourceType: 'YouTube',
+            sourceName: source.name,
+            itemsFound: videosResult.videos.length
+          })
 
           for (const video of videosResult.videos) {
             try {
@@ -242,6 +347,20 @@ class YouTubeIngestionService {
             sourceResult.videosProcessed
           )
 
+          sourceResult.duration = Date.now() - sourceStartTime
+          
+          logIngestionOperation('SOURCE_BY_ID_COMPLETED', {
+            sourceType: 'YouTube',
+            sourceName: source.name,
+            itemsFound: sourceResult.videosFound,
+            itemsProcessed: sourceResult.videosProcessed,
+            newItems: result.newVideos,
+            updatedItems: result.updatedVideos,
+            skippedItems: result.skippedVideos,
+            duration: sourceResult.duration,
+            success: true
+          })
+
         } catch (error) {
           const errorMsg = `Error processing source ${source.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
           console.error(errorMsg)
@@ -255,14 +374,45 @@ class YouTubeIngestionService {
             0,
             errorMsg
           )
+
+          sourceResult.duration = Date.now() - sourceStartTime
+          
+          logIngestionOperation('SOURCE_BY_ID_FAILED', {
+            sourceType: 'YouTube',
+            sourceName: source.name,
+            duration: sourceResult.duration,
+            success: false,
+            error: errorMsg
+          })
         }
 
-        sourceResult.duration = Date.now() - startTime
         result.sources.push(sourceResult)
       }
 
+      const totalDuration = Date.now() - startTime
+      
       if (result.errors.length > 0) {
         result.success = false
+        logIngestionOperation('SOURCE_INGESTION_COMPLETED_WITH_ERRORS', {
+          sourceType: 'YouTube',
+          itemsFound: result.totalVideos,
+          newItems: result.newVideos,
+          updatedItems: result.updatedVideos,
+          skippedItems: result.skippedVideos,
+          duration: totalDuration,
+          success: false,
+          error: `${result.errors.length} errors occurred`
+        })
+      } else {
+        logIngestionOperation('SOURCE_INGESTION_COMPLETED_SUCCESSFULLY', {
+          sourceType: 'YouTube',
+          itemsFound: result.totalVideos,
+          newItems: result.newVideos,
+          updatedItems: result.updatedVideos,
+          skippedItems: result.skippedVideos,
+          duration: totalDuration,
+          success: true
+        })
       }
 
     } catch (error) {
@@ -270,6 +420,13 @@ class YouTubeIngestionService {
       console.error(errorMsg)
       result.success = false
       result.errors.push(errorMsg)
+      
+      logIngestionOperation('SOURCE_INGESTION_FAILED', {
+        sourceType: 'YouTube',
+        duration: Date.now() - startTime,
+        success: false,
+        error: errorMsg
+      })
     }
 
     return result
@@ -279,13 +436,19 @@ class YouTubeIngestionService {
    * Ingest videos from sources that need ingestion (haven't been ingested recently or have errors)
    */
   async ingestFromSourcesNeedingIngestion(hoursThreshold: number = 24): Promise<IngestionResult> {
-    console.log(`Starting YouTube ingestion from sources needing ingestion (threshold: ${hoursThreshold} hours)...`)
+    logIngestionOperation('START_NEEDED_INGESTION', {
+      sourceType: 'YouTube',
+      itemsFound: 0
+    })
     
     const sources = await this.feedSourceManager.getSourcesNeedingIngestion(hoursThreshold)
     const youtubeSources = sources.filter(s => s.type === 'youtube')
     
     if (youtubeSources.length === 0) {
-      console.log('No YouTube sources need ingestion')
+      logIngestionOperation('NO_SOURCES_NEED_INGESTION', {
+        sourceType: 'YouTube',
+        itemsFound: 0
+      })
       return {
         success: true,
         totalVideos: 0,
@@ -297,6 +460,11 @@ class YouTubeIngestionService {
       }
     }
 
+    logIngestionOperation('SOURCES_NEED_INGESTION', {
+      sourceType: 'YouTube',
+      itemsFound: youtubeSources.length
+    })
+
     const sourceIds = youtubeSources.map(s => s.id)
     return await this.ingestFromSourceIds(sourceIds)
   }
@@ -305,7 +473,12 @@ class YouTubeIngestionService {
    * Legacy method for backward compatibility
    */
   async ingestFromChannels(channels: ChannelConfig[]): Promise<IngestionResult> {
-    console.log('Using legacy ingestFromChannels method. Consider using ingestFromAllSources instead.')
+    const startTime = Date.now()
+    
+    logIngestionOperation('START_LEGACY_INGESTION', {
+      sourceType: 'YouTube',
+      itemsFound: channels.length
+    })
     
     const result: IngestionResult = {
       success: true,
@@ -321,7 +494,7 @@ class YouTubeIngestionService {
       await connectToDatabase()
 
       for (const channel of channels) {
-        const startTime = Date.now()
+        const channelStartTime = Date.now()
         const sourceResult = {
           sourceId: channel.id,
           sourceName: channel.name,
@@ -333,12 +506,24 @@ class YouTubeIngestionService {
         }
 
         try {
+          logIngestionOperation('PROCESSING_LEGACY_CHANNEL', {
+            sourceType: 'YouTube',
+            sourceName: channel.name,
+            itemsFound: 0
+          })
+
           const videosResult = await this.youtubeService.getChannelVideos(
             channel.id, 
             channel.maxResults || 50
           )
 
           sourceResult.videosFound = videosResult.videos.length
+
+          logIngestionOperation('LEGACY_VIDEOS_FETCHED', {
+            sourceType: 'YouTube',
+            sourceName: channel.name,
+            itemsFound: videosResult.videos.length
+          })
 
           for (const video of videosResult.videos) {
             try {
@@ -362,20 +547,65 @@ class YouTubeIngestionService {
             }
           }
 
+          sourceResult.duration = Date.now() - channelStartTime
+          
+          logIngestionOperation('LEGACY_CHANNEL_COMPLETED', {
+            sourceType: 'YouTube',
+            sourceName: channel.name,
+            itemsFound: sourceResult.videosFound,
+            itemsProcessed: sourceResult.videosProcessed,
+            newItems: result.newVideos,
+            updatedItems: result.updatedVideos,
+            skippedItems: result.skippedVideos,
+            duration: sourceResult.duration,
+            success: true
+          })
+
         } catch (error) {
           const errorMsg = `Error processing channel ${channel.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
           console.error(errorMsg)
           sourceResult.success = false
           sourceResult.error = errorMsg
           result.errors.push(errorMsg)
+
+          sourceResult.duration = Date.now() - channelStartTime
+          
+          logIngestionOperation('LEGACY_CHANNEL_FAILED', {
+            sourceType: 'YouTube',
+            sourceName: channel.name,
+            duration: sourceResult.duration,
+            success: false,
+            error: errorMsg
+          })
         }
 
-        sourceResult.duration = Date.now() - startTime
         result.sources.push(sourceResult)
       }
 
+      const totalDuration = Date.now() - startTime
+      
       if (result.errors.length > 0) {
         result.success = false
+        logIngestionOperation('LEGACY_INGESTION_COMPLETED_WITH_ERRORS', {
+          sourceType: 'YouTube',
+          itemsFound: result.totalVideos,
+          newItems: result.newVideos,
+          updatedItems: result.updatedVideos,
+          skippedItems: result.skippedVideos,
+          duration: totalDuration,
+          success: false,
+          error: `${result.errors.length} errors occurred`
+        })
+      } else {
+        logIngestionOperation('LEGACY_INGESTION_COMPLETED_SUCCESSFULLY', {
+          sourceType: 'YouTube',
+          itemsFound: result.totalVideos,
+          newItems: result.newVideos,
+          updatedItems: result.updatedVideos,
+          skippedItems: result.skippedVideos,
+          duration: totalDuration,
+          success: true
+        })
       }
 
     } catch (error) {
@@ -383,6 +613,13 @@ class YouTubeIngestionService {
       console.error(errorMsg)
       result.success = false
       result.errors.push(errorMsg)
+      
+      logIngestionOperation('LEGACY_INGESTION_FAILED', {
+        sourceType: 'YouTube',
+        duration: Date.now() - startTime,
+        success: false,
+        error: errorMsg
+      })
     }
 
     return result
@@ -423,10 +660,20 @@ class YouTubeIngestionService {
         )
         
         if (updatedResource) {
-          console.log(`Updated video: ${video.title}`)
+          logIngestionOperation('VIDEO_UPDATED', {
+            sourceType: 'YouTube',
+            sourceName: video.channelTitle,
+            itemsProcessed: 1,
+            updatedItems: 1
+          })
           return { status: 'updated' }
         } else {
-          console.log(`Failed to update video: ${video.title}`)
+          logIngestionOperation('VIDEO_UPDATE_FAILED', {
+            sourceType: 'YouTube',
+            sourceName: video.channelTitle,
+            itemsProcessed: 1,
+            skippedItems: 1
+          })
           return { status: 'skipped' }
         }
       } else {
@@ -434,7 +681,12 @@ class YouTubeIngestionService {
         const newResource = new Resource(resourceData)
         await newResource.save()
         
-        console.log(`Added new video: ${video.title}`)
+        logIngestionOperation('VIDEO_CREATED', {
+          sourceType: 'YouTube',
+          sourceName: video.channelTitle,
+          itemsProcessed: 1,
+          newItems: 1
+        })
         return { status: 'new' }
       }
       
@@ -457,11 +709,20 @@ class YouTubeIngestionService {
 
   async ingestFromChannelUsername(username: string, maxResults: number = 50): Promise<IngestionResult> {
     try {
-      console.log(`Searching for channel by username: ${username}`)
+      logIngestionOperation('START_USERNAME_INGESTION', {
+        sourceType: 'YouTube',
+        sourceName: username,
+        itemsFound: 0
+      })
       
       const videosResult = await this.youtubeService.searchChannelVideos(username, maxResults.toString())
       
       if (videosResult.videos.length === 0) {
+        logIngestionOperation('NO_VIDEOS_FOUND_FOR_USERNAME', {
+          sourceType: 'YouTube',
+          sourceName: username,
+          itemsFound: 0
+        })
         return {
           success: false,
           totalVideos: 0,
@@ -476,11 +737,24 @@ class YouTubeIngestionService {
       const channelId = videosResult.channelId
       const channelName = videosResult.videos[0].channelTitle
       
+      logIngestionOperation('USERNAME_INGESTION_COMPLETED', {
+        sourceType: 'YouTube',
+        sourceName: username,
+        itemsFound: videosResult.videos.length
+      })
+      
       return await this.ingestFromChannel(channelId, channelName, maxResults)
       
     } catch (error) {
       const errorMsg = `Error ingesting from channel username ${username}: ${error instanceof Error ? error.message : 'Unknown error'}`
       console.error(errorMsg)
+      
+      logIngestionOperation('USERNAME_INGESTION_FAILED', {
+        sourceType: 'YouTube',
+        sourceName: username,
+        success: false,
+        error: errorMsg
+      })
       
       return {
         success: false,
@@ -526,6 +800,12 @@ class YouTubeIngestionService {
       )
       
       const feedSourceStats = await this.feedSourceManager.getIngestionStats()
+      
+      logIngestionOperation('STATS_RETRIEVED', {
+        sourceType: 'YouTube',
+        itemsFound: totalResources,
+        newItems: youtubeResources
+      })
       
       return {
         totalResources,

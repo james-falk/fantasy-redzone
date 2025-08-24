@@ -4,8 +4,7 @@ import Footer from '@/components/footer'
 import Hero from '@/components/hero'
 import Navbar from '@/components/navbar'
 import Newsletter from '@/components/newsletter'
-import ContentSection from '@/components/content-section'
-import FeaturedCarousel from '@/components/featured-carousel'
+import ClientPageWrapper from '@/components/client-page-wrapper'
 import { connectToDatabase } from '@/lib/mongodb'
 import Resource from '@/models/Resource'
 
@@ -104,9 +103,10 @@ export default async function Home() {
       </header>
 
       <main>
-        <FeaturedCarousel featuredContent={featuredContent} />
-
-        <ContentSection initialContent={transformedVideos} featuredContentIds={featuredContentIds} />
+        <ClientPageWrapper 
+          initialContent={transformedVideos} 
+          featuredContentIds={featuredContentIds} 
+        />
         <Faq items={Faqs} />
         <Newsletter />
       </main>
