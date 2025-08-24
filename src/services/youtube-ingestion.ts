@@ -1,6 +1,6 @@
 import { connectToDatabase } from '@/lib/mongodb'
 import Resource from '@/models/Resource'
-import YouTubeAPIService, { YouTubeVideo } from './youtube'
+import { YouTubeService } from './youtube'
 import FeedSourceManager, { FeedSourceConfig } from './feed-source-manager'
 
 export interface IngestionResult {
@@ -28,11 +28,11 @@ export interface ChannelConfig {
 }
 
 class YouTubeIngestionService {
-  private youtubeService: YouTubeAPIService
+  private youtubeService: YouTubeService
   private feedSourceManager: FeedSourceManager
 
   constructor() {
-    this.youtubeService = new YouTubeAPIService()
+    this.youtubeService = new YouTubeService()
     this.feedSourceManager = new FeedSourceManager()
   }
 
@@ -80,16 +80,16 @@ class YouTubeIngestionService {
           console.log(`Processing source: ${source.name} (${source.identifier})`)
 
           // Fetch videos from the channel
-          const videos = await this.youtubeService.getChannelVideos(
+          const videosResult = await this.youtubeService.getChannelVideos(
             source.identifier,
-            source.maxResults
+            source.maxResults || 10
           )
 
-          sourceResult.videosFound = videos.length
-          console.log(`Found ${videos.length} videos from ${source.name}`)
+          sourceResult.videosFound = videosResult.videos.length
+          console.log(`Found ${videosResult.videos.length} videos from ${source.name}`)
 
           // Process each video
-          for (const video of videos) {
+          for (const video of videosResult.videos) {
             try {
               const videoResult = await this.processVideo(video)
               
@@ -207,14 +207,14 @@ class YouTubeIngestionService {
         try {
           console.log(`Processing source: ${source.name} (${source.identifier})`)
 
-          const videos = await this.youtubeService.getChannelVideos(
+          const videosResult = await this.youtubeService.getChannelVideos(
             source.identifier,
-            source.maxResults
+            source.maxResults || 10
           )
 
-          sourceResult.videosFound = videos.length
+          sourceResult.videosFound = videosResult.videos.length
 
-          for (const video of videos) {
+          for (const video of videosResult.videos) {
             try {
               const videoResult = await this.processVideo(video)
               
@@ -333,14 +333,14 @@ class YouTubeIngestionService {
         }
 
         try {
-          const videos = await this.youtubeService.getChannelVideos(
+          const videosResult = await this.youtubeService.getChannelVideos(
             channel.id, 
             channel.maxResults || 50
           )
 
-          sourceResult.videosFound = videos.length
+          sourceResult.videosFound = videosResult.videos.length
 
-          for (const video of videos) {
+          for (const video of videosResult.videos) {
             try {
               const videoResult = await this.processVideo(video)
               
@@ -391,10 +391,22 @@ class YouTubeIngestionService {
   /**
    * Process a single video
    */
-  private async processVideo(video: YouTubeVideo): Promise<{ status: 'new' | 'updated' | 'skipped' }> {
+  private async processVideo(video: { id: string; title: string; description: string; thumbnail: string; channelTitle: string; publishedAt: string }): Promise<{ status: 'new' | 'updated' | 'skipped' }> {
     try {
       // Convert video to resource format
-      const resourceData = this.youtubeService.convertVideoToResource(video)
+      const resourceData = {
+        title: video.title,
+        description: video.description,
+        url: `https://www.youtube.com/watch?v=${video.id}`,
+        image: video.thumbnail,
+        videoUrl: `https://www.youtube.com/watch?v=${video.id}`,
+        source: 'YouTube',
+        author: video.channelTitle,
+        category: 'Video',
+        tags: [],
+        pubDate: new Date(video.publishedAt),
+        rawFeedItem: video
+      }
       
       // Check if video already exists
       const existingResource = await Resource.findOne({ url: resourceData.url })
@@ -447,9 +459,9 @@ class YouTubeIngestionService {
     try {
       console.log(`Searching for channel by username: ${username}`)
       
-      const videos = await this.youtubeService.searchChannelVideos(username, maxResults)
+      const videosResult = await this.youtubeService.searchChannelVideos(username, maxResults.toString())
       
-      if (videos.length === 0) {
+      if (videosResult.videos.length === 0) {
         return {
           success: false,
           totalVideos: 0,
@@ -461,8 +473,8 @@ class YouTubeIngestionService {
         }
       }
       
-      const channelId = videos[0].channelId
-      const channelName = videos[0].channelTitle
+      const channelId = videosResult.channelId
+      const channelName = videosResult.videos[0].channelTitle
       
       return await this.ingestFromChannel(channelId, channelName, maxResults)
       

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import YouTubeAPIService from '@/services/youtube'
+import { YouTubeService } from '@/services/youtube'
 
 export async function GET() {
   try {
@@ -18,7 +18,7 @@ export async function GET() {
       )
     }
 
-    const youtubeService = new YouTubeAPIService()
+    const youtubeService = new YouTubeService()
 
     // Test with a known fantasy football channel
     const testChannelId = 'UCq-Fj5jknLsUf-MWSy4_brA' // ESPN Fantasy Football
@@ -28,21 +28,10 @@ export async function GET() {
     // Get channel info
     const channelInfo = await youtubeService.getChannelInfo(testChannelId)
     
-    if (!channelInfo) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to fetch channel information',
-          timestamp: new Date().toISOString()
-        },
-        { status: 500 }
-      )
-    }
-
     // Get a few videos from the channel
-    const videos = await youtubeService.getChannelVideos(testChannelId, 5)
+    const videosResult = await youtubeService.getChannelVideos(testChannelId, 5)
     
-    if (videos.length === 0) {
+    if (!videosResult.videos || videosResult.videos.length === 0) {
       return NextResponse.json(
         {
           success: false,
@@ -53,9 +42,8 @@ export async function GET() {
       )
     }
 
-    // Test video conversion
-    const sampleVideo = videos[0]
-    const convertedResource = youtubeService.convertVideoToResource(sampleVideo)
+    // Test video data
+    const sampleVideo = videosResult.videos[0]
 
     return NextResponse.json({
       success: true,
@@ -68,22 +56,13 @@ export async function GET() {
         subscriberCount: channelInfo.subscriberCount,
         videoCount: channelInfo.videoCount
       },
-      videosFound: videos.length,
+      videosFound: videosResult.videos.length,
       sampleVideo: {
         id: sampleVideo.id,
         title: sampleVideo.title,
         channelTitle: sampleVideo.channelTitle,
         publishedAt: sampleVideo.publishedAt,
-        viewCount: sampleVideo.viewCount,
-        likeCount: sampleVideo.likeCount
-      },
-      convertedResource: {
-        title: convertedResource.title,
-        url: convertedResource.url,
-        source: convertedResource.source,
-        author: convertedResource.author,
-        category: convertedResource.category,
-        keywords: convertedResource.keywords?.slice(0, 5) // Show first 5 keywords
+        thumbnail: sampleVideo.thumbnail
       },
       timestamp: new Date().toISOString()
     })

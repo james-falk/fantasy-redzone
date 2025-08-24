@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import FeedSource from '@/models/FeedSource'
+import FeedSourceManager from '@/services/feed-source-manager'
 
 export async function POST() {
   try {
