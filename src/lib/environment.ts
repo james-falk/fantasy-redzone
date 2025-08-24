@@ -35,7 +35,7 @@ export interface EnvironmentConfig {
   enableNameGenerator: boolean
   
   // Deployment & Automation
-  cronSecret?: string
+  cronSecret: string
   refreshToken?: string
   
   // Environment Detection
@@ -102,7 +102,7 @@ export function getEnvironmentConfig(): EnvironmentConfig {
     enableNameGenerator: process.env.ENABLE_NAME_GENERATOR === 'true',
     
     // Deployment & Automation
-    cronSecret: process.env.CRON_SECRET,
+    cronSecret: process.env.CRON_SECRET || '',
     refreshToken: process.env.REFRESH_TOKEN,
     
     // Environment Detection

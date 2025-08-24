@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import Resource from '@/models/Resource'
+import { dailyScheduler } from '@/services/daily-scheduler'
 
 interface RefreshCheckResponse {
   newDataAvailable: boolean
@@ -10,6 +11,9 @@ interface RefreshCheckResponse {
   youtubeVideosCount: number
   lastResourceTime: string | null
   timeSinceLastResource: number | null // in minutes
+  lastIngestionTime: string | null
+  nextScheduledIngestion: string | null
+  schedulerStatus: 'success' | 'failed' | 'pending' | 'unknown'
   sources: {
     youtube: {
       count: number
@@ -120,6 +124,9 @@ export async function GET(request: Request) {
       timeSinceLastResource = Math.floor((now.getTime() - lastResourceTime.getTime()) / (1000 * 60)) // in minutes
     }
     
+    // Get scheduler information
+    const schedulerState = dailyScheduler.getSchedulerState()
+    
     const currentTime = new Date()
     const response: RefreshCheckResponse = {
       newDataAvailable,
@@ -129,6 +136,9 @@ export async function GET(request: Request) {
       youtubeVideosCount,
       lastResourceTime: latestResource ? latestResource.createdAt.toISOString() : null,
       timeSinceLastResource,
+      lastIngestionTime: schedulerState.lastIngestionTime?.toISOString() || null,
+      nextScheduledIngestion: schedulerState.nextScheduledTime.toISOString(),
+      schedulerStatus: schedulerState.lastIngestionStatus,
       sources: {
         youtube: {
           count: youtubeVideosCount,

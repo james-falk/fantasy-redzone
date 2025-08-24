@@ -11,6 +11,9 @@ interface RefreshCheckResponse {
   youtubeVideosCount: number
   lastResourceTime: string | null
   timeSinceLastResource: number | null
+  lastIngestionTime: string | null
+  nextScheduledIngestion: string | null
+  schedulerStatus: 'success' | 'failed' | 'pending' | 'unknown'
   sources: {
     youtube: {
       count: number
@@ -32,7 +35,7 @@ interface RefreshIndicatorProps {
 
 export default function RefreshIndicator({
   onRefresh,
-  pollingInterval = 5 * 60 * 60 * 1000, // 5 hours default
+  pollingInterval = 30 * 60 * 1000, // 30 minutes default
   showStatus = false,
   className = ''
 }: RefreshIndicatorProps) {
@@ -69,11 +72,14 @@ export default function RefreshIndicator({
       setLastCheckTime(newCheckTime)
       lastCheckTimeRef.current = newCheckTime
       
-      console.log('✅ [FRONTEND] Refresh check completed:', {
-        newDataAvailable: data.newDataAvailable,
-        resourceCount: data.resourceCount,
-        youtubeVideosCount: data.youtubeVideosCount
-      })
+             console.log('✅ [FRONTEND] Refresh check completed:', {
+         newDataAvailable: data.newDataAvailable,
+         resourceCount: data.resourceCount,
+         youtubeVideosCount: data.youtubeVideosCount,
+         schedulerStatus: data.schedulerStatus,
+         lastIngestion: data.lastIngestionTime,
+         nextScheduled: data.nextScheduledIngestion
+       })
       
       // Show alert if new content is available
       if (data.newDataAvailable) {
@@ -222,15 +228,20 @@ export default function RefreshIndicator({
         </div>
       )}
 
-      {/* Detailed Status (for debugging) */}
-      {process.env.NODE_ENV === 'development' && lastResponse && (
-        <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-          <div>Resources: {lastResponse.resourceCount}</div>
-          <div>YouTube: {lastResponse.youtubeVideosCount}</div>
-          <div>Articles: {lastResponse.sources.articles.count}</div>
-          <div>Last resource: {formatTimeSince(lastResponse.timeSinceLastResource)}</div>
-        </div>
-      )}
+             {/* Detailed Status (for debugging) */}
+       {process.env.NODE_ENV === 'development' && lastResponse && (
+         <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+           <div>Resources: {lastResponse.resourceCount}</div>
+           <div>YouTube: {lastResponse.youtubeVideosCount}</div>
+           <div>Articles: {lastResponse.sources.articles.count}</div>
+           <div>Last resource: {formatTimeSince(lastResponse.timeSinceLastResource)}</div>
+           <div>Scheduler: {lastResponse.schedulerStatus}</div>
+           <div>Last ingestion: {lastResponse.lastIngestionTime ? formatTimeSince(
+             Math.floor((new Date().getTime() - new Date(lastResponse.lastIngestionTime).getTime()) / (1000 * 60))
+           ) : 'Never'}</div>
+           <div>Next scheduled: {lastResponse.nextScheduledIngestion ? new Date(lastResponse.nextScheduledIngestion).toLocaleString() : 'Unknown'}</div>
+         </div>
+       )}
     </div>
   )
 }
