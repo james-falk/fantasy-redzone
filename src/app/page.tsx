@@ -11,18 +11,18 @@ import Resource from '@/models/Resource'
 export default async function Home() {
   console.log('🚀 [PRODUCTION DEBUG] Home page starting...')
   
-  // Fetch YouTube videos directly from database
+  // Fetch all content (YouTube videos and RSS articles) directly from database
   const connection = await connectToDatabase()
   console.log('🔗 [PRODUCTION DEBUG] Database connection result:', connection ? 'SUCCESS' : 'FAILED')
   
-  let transformedVideos: Array<{
+  let transformedContent: Array<{
     id: string
     title: string
     shortDescription: string
     cover: string
     category: string
     publishDate: string
-    source: 'youtube'
+    source: 'youtube' | 'rss'
     url: string
     sourceName: string
     author: string
@@ -32,64 +32,104 @@ export default async function Home() {
   }> = []
   
   if (connection) {
-    console.log('📊 [PRODUCTION DEBUG] Querying MongoDB for YouTube videos...')
+    console.log('📊 [PRODUCTION DEBUG] Querying MongoDB for all content...')
     
     try {
-      const youtubeVideos = await Resource.find({
-        source: 'YouTube',
+                         const allResources = await Resource.find({
         isActive: true
       })
       .sort({ pubDate: -1 })
-      .limit(30)
+      .limit(200)
       .lean()
 
-      console.log('📺 [PRODUCTION DEBUG] Found YouTube videos:', youtubeVideos.length)
-      console.log('📺 [PRODUCTION DEBUG] First video sample:', youtubeVideos[0] ? {
-        id: youtubeVideos[0]._id,
-        title: youtubeVideos[0].title,
-        image: youtubeVideos[0].image,
-        url: youtubeVideos[0].url
-      } : 'No videos found')
+      console.log('📺 [PRODUCTION DEBUG] Found total resources:', allResources.length)
+      
+      const youtubeCount = allResources.filter(r => r.source === 'YouTube').length
+      const rssCount = allResources.filter(r => r.source === 'RSS').length
+      console.log('📺 [PRODUCTION DEBUG] YouTube videos:', youtubeCount, 'RSS articles:', rssCount)
+      
+      console.log('📺 [PRODUCTION DEBUG] First resource sample:', allResources[0] ? {
+        id: allResources[0]._id,
+        title: allResources[0].title,
+        source: allResources[0].source,
+        image: allResources[0].image,
+        url: allResources[0].url
+      } : 'No resources found')
 
       // Transform to the format expected by components
-      transformedVideos = youtubeVideos.map((video: Record<string, unknown>) => ({
-        id: (video._id as { toString(): string })?.toString() || '',
-        title: (video.title as string) || '',
-        shortDescription: ((video.description as string) || '').length > 150 
-          ? ((video.description as string) || '').substring(0, 150) + '...' 
-          : (video.description as string) || '',
-        cover: (video.image as string) || '',
-        category: (video.category as string) || '',
-        publishDate: (video.pubDate as string) || '',
-        source: 'youtube' as const,
-        url: (video.url as string) || '',
-        sourceName: (video.author as string) || '',
-        author: (video.author as string) || '',
-        viewCount: (video.rawFeedItem as Record<string, unknown>)?.viewCount ? parseInt((video.rawFeedItem as Record<string, unknown>).viewCount as string) : undefined,
-        duration: (video.rawFeedItem as Record<string, unknown>)?.duration ? formatDuration((video.rawFeedItem as Record<string, unknown>).duration as string) : undefined,
-        tags: (video.tags as string[]) || []
-      }))
+      transformedContent = allResources.map((resource: Record<string, unknown>) => {
+        const source = (resource.source as string) || ''
+        const isYouTube = source === 'YouTube'
+        
+        return {
+          id: (resource._id as { toString(): string })?.toString() || '',
+          title: (resource.title as string) || '',
+          shortDescription: ((resource.description as string) || '').length > 150 
+            ? ((resource.description as string) || '').substring(0, 150) + '...' 
+            : (resource.description as string) || '',
+          cover: (resource.image as string) || '',
+          category: (resource.category as string) || '',
+          publishDate: (resource.pubDate as string) || '',
+          source: isYouTube ? 'youtube' as const : 'rss' as const,
+          url: (resource.url as string) || '',
+          sourceName: isYouTube ? (resource.author as string) || '' : (resource.rawFeedItem as Record<string, unknown>)?.sourceName as string || (resource.author as string) || '',
+          author: (resource.author as string) || '',
+          viewCount: isYouTube && (resource.rawFeedItem as Record<string, unknown>)?.viewCount 
+            ? parseInt((resource.rawFeedItem as Record<string, unknown>).viewCount as string) 
+            : undefined,
+          duration: isYouTube && (resource.rawFeedItem as Record<string, unknown>)?.duration 
+            ? formatDuration((resource.rawFeedItem as Record<string, unknown>).duration as string) 
+            : undefined,
+          tags: (resource.tags as string[]) || []
+        }
+      })
       
-      console.log('🔄 [PRODUCTION DEBUG] Transformed videos:', transformedVideos.length)
-      console.log('🔄 [PRODUCTION DEBUG] First transformed video:', transformedVideos[0] ? {
-        id: transformedVideos[0].id,
-        title: transformedVideos[0].title,
-        cover: transformedVideos[0].cover,
-        url: transformedVideos[0].url
-      } : 'No transformed videos')
+      console.log('🔄 [PRODUCTION DEBUG] Transformed content:', transformedContent.length)
+      console.log('🔄 [PRODUCTION DEBUG] First transformed content:', transformedContent[0] ? {
+        id: transformedContent[0].id,
+        title: transformedContent[0].title,
+        source: transformedContent[0].source,
+        cover: transformedContent[0].cover,
+        url: transformedContent[0].url
+      } : 'No transformed content')
       
     } catch (error) {
-      console.error('❌ [PRODUCTION DEBUG] Error fetching videos:', error)
+      console.error('❌ [PRODUCTION DEBUG] Error fetching content:', error)
     }
   } else {
     console.log('⚠️ [PRODUCTION DEBUG] No database connection available')
   }
 
-  // Use the first 5 videos as featured content for the carousel
-  const featuredContent = transformedVideos.slice(0, 5)
-  const featuredContentIds = featuredContent.map(video => video.id)
+  // Select featured content: top 3 most-viewed videos from past week + 3 recent articles
+  const oneWeekAgo = new Date()
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+  
+  // Get videos from the past week with view counts
+  const recentVideos = transformedContent.filter(item => 
+    item.source === 'youtube' && 
+    item.viewCount && 
+    new Date(item.publishDate) >= oneWeekAgo
+  )
+  
+  // Sort by view count (highest first) and take top 3
+  const topVideos = recentVideos
+    .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+    .slice(0, 3)
+  
+  // Get 3 recent articles
+  const recentArticles = transformedContent
+    .filter(item => item.source === 'rss')
+    .sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
+    .slice(0, 3)
+  
+  // Combine videos and articles for featured content, then sort by newest first
+  const featuredContent = [...topVideos, ...recentArticles]
+    .sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime())
+  const featuredContentIds = featuredContent.map(item => item.id)
   
   console.log('🎯 [PRODUCTION DEBUG] Featured content count:', featuredContent.length)
+  console.log('🎯 [PRODUCTION DEBUG] Top videos from past week:', topVideos.length)
+  console.log('🎯 [PRODUCTION DEBUG] Recent articles:', recentArticles.length)
   console.log('🎯 [PRODUCTION DEBUG] Featured content IDs:', featuredContentIds)
 
   return (
@@ -104,7 +144,7 @@ export default async function Home() {
 
       <main>
         <ClientPageWrapper 
-          initialContent={transformedVideos} 
+          initialContent={transformedContent} 
           featuredContentIds={featuredContentIds} 
         />
         <Faq items={Faqs} />

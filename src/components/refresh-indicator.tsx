@@ -240,20 +240,7 @@ export default function RefreshIndicator({
         </div>
       )}
 
-             {/* Detailed Status (for debugging) */}
-       {process.env.NODE_ENV === 'development' && lastResponse && (
-         <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-           <div>Resources: {lastResponse.resourceCount}</div>
-           <div>YouTube: {lastResponse.youtubeVideosCount}</div>
-           <div>Articles: {lastResponse.sources.articles.count}</div>
-           <div>Last resource: {formatTimeSince(lastResponse.timeSinceLastResource)}</div>
-           <div>Scheduler: {lastResponse.schedulerStatus}</div>
-           <div>Last ingestion: {lastResponse.lastIngestionTime ? formatTimeSince(
-             Math.floor((new Date().getTime() - new Date(lastResponse.lastIngestionTime).getTime()) / (1000 * 60))
-           ) : 'Never'}</div>
-           <div>Next scheduled: {lastResponse.nextScheduledIngestion ? new Date(lastResponse.nextScheduledIngestion).toLocaleString() : 'Unknown'}</div>
-         </div>
-       )}
+       
     </div>
   )
 }

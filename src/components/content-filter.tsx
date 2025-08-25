@@ -107,7 +107,7 @@ export default function ContentFilterComponent({ content, onFilterChange }: Cont
       </div>
 
       {/* Filter Toggle */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-4 mb-4">
         <button
           onClick={() => setIsFilterOpen(!isFilterOpen)}
           className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
@@ -121,15 +121,18 @@ export default function ContentFilterComponent({ content, onFilterChange }: Cont
           )}
         </button>
 
-        {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-2 px-3 py-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-            Clear All
-          </button>
-        )}
+        <button
+          onClick={clearFilters}
+          disabled={!hasActiveFilters}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+            hasActiveFilters 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          <X className="w-4 h-4" />
+          Clear Filters
+        </button>
       </div>
 
       {/* Filter Panel */}

@@ -157,12 +157,12 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
                       </div>
 
                       {/* Content Image */}
-                      <div className={`relative ${isCurrent ? 'h-48 lg:h-56' : 'h-40 lg:h-44'}`}>
+                      <div className={`relative ${isCurrent ? 'h-48 lg:h-56' : 'h-40 lg:h-44'} ${content.source === 'rss' ? 'bg-gray-800' : ''}`}>
                         <Image
                           src={content.cover}
                           alt={content.title}
                           fill
-                          className="object-cover"
+                          className={content.source === 'rss' ? 'object-contain' : 'object-cover'}
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       </div>

@@ -22,7 +22,7 @@ export interface IResource extends Document {
   updatedAt: Date;
 }
 
-const FALLBACK_IMAGE_URL = "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop&q=80";
+const FALLBACK_IMAGE_URL = "/fallback-images/news-default.svg";
 
 const ResourceSchema: Schema = new Schema(
   {

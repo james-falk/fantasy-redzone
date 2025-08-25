@@ -13,7 +13,7 @@ interface ClientPageWrapperProps {
     cover: string
     category: string
     publishDate: string
-    source: 'youtube'
+    source: 'youtube' | 'rss'
     url: string
     sourceName: string
     author: string
@@ -49,8 +49,8 @@ export default function ClientPageWrapper({
     }
   }, [])
 
-  // Use the first 5 videos as featured content for the carousel
-  const featuredContent = content.slice(0, 5)
+  // Use the featured content IDs to get the actual featured content
+  const featuredContent = content.filter(item => featuredContentIds.includes(item.id))
 
   return (
     <>

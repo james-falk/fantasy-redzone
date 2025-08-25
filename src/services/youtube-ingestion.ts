@@ -823,4 +823,3 @@ class YouTubeIngestionService {
 }
 
 export default YouTubeIngestionService
-export { YouTubeIngestionService }

@@ -28,7 +28,7 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
   const getSourceBadge = (source: string) => {
     switch (source) {
       case 'youtube':
-        return { label: 'VIDEO', bg: 'bg-red-600', text: 'text-white' }
+        return { label: 'YOUTUBE', bg: 'bg-red-600', text: 'text-white' }
       case 'rss':
       case 'news':
         return { label: 'NEWS', bg: 'bg-green-600', text: 'text-white' }
@@ -40,11 +40,26 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
+    const now = new Date()
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+    
+    if (diffInHours < 24) {
+      // Show time for recent content (within 24 hours)
+      return date.toLocaleString('en-US', { 
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    } else {
+      // Show date for older content
+      return date.toLocaleDateString('en-US', { 
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      })
+    }
   }
 
   const sourceBadge = getSourceBadge(post.source)
@@ -73,23 +88,25 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
       </div>
 
       {/* Image Section (60-70% of card height) */}
-      <div className="relative h-48 lg:h-52">
+      <div className={`relative h-48 lg:h-52 ${post.source === 'rss' ? 'bg-gray-800' : ''}`}>
         {!imageError ? (
           <Image
             src={post.cover}
             alt={post.title}
             fill
-            className="object-cover"
+            className={post.source === 'rss' ? 'object-contain' : 'object-cover'}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             onError={() => setImageError(true)}
           />
-        ) : (
-          <div className="absolute inset-0 bg-gray-700 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-sm text-gray-400">VIDEO</div>
-            </div>
-          </div>
-        )}
+                 ) : (
+           <div className="absolute inset-0 bg-gray-700 flex items-center justify-center">
+             <div className="text-center">
+               <div className="text-sm text-gray-400">
+                 {post.source === 'rss' ? 'NEWS' : 'VIDEO'}
+               </div>
+             </div>
+           </div>
+         )}
       </div>
 
       {/* Content Section */}
@@ -100,17 +117,19 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
             {post.category}
           </span>
           <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
-            {post.sourceName || 'Unknown Source'}
+            {post.source === 'rss' ? (post.sourceName || 'RSS') : (post.sourceName || 'Unknown Source')}
           </span>
           <span className="text-gray-400 text-xs ml-auto">
             {formatDate(post.publishDate)}
           </span>
         </div>
 
-        {/* Source URL */}
-        <div className="text-gray-400 text-sm mb-2">
-          {post.sourceName || 'Unknown Source'}
-        </div>
+        {/* Author */}
+        {post.author && post.author !== post.sourceName && (
+          <div className="text-gray-400 text-sm mb-2">
+            By {post.author}
+          </div>
+        )}
 
         {/* Headline */}
         <h3 className="font-bold text-white text-base mb-2 line-clamp-2 group-hover:text-yellow-400 transition-colors duration-300">
@@ -125,9 +144,7 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
         {/* Additional Metadata */}
         <div className="flex items-center justify-between mt-3 text-xs text-gray-400">
           <div className="flex items-center gap-2">
-            {post.author && (
-              <span>By {post.author}</span>
-            )}
+            {/* Author info moved above */}
           </div>
           <div className="flex items-center gap-2">
             {post.viewCount && (
