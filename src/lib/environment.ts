@@ -71,12 +71,13 @@ function validateEnvironment(environment: EnvironmentConfig): void {
 /**
  * Gets the current environment configuration
  * @returns EnvironmentConfig - Validated environment configuration
- * @throws Error if required environment variables are missing
+ * @throws Error if required environment variables are missing (only in runtime, not build time)
  */
 export function getEnvironmentConfig(): EnvironmentConfig {
   const isDevelopment = process.env.NODE_ENV === 'development'
   const isProduction = process.env.NODE_ENV === 'production'
   const isVercel = !!process.env.VERCEL_ENV
+  const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL_ENV
 
   const config: EnvironmentConfig = {
     // Site Configuration
@@ -111,8 +112,10 @@ export function getEnvironmentConfig(): EnvironmentConfig {
     isVercel
   }
 
-  // Validate configuration
-  validateEnvironment(config)
+  // Only validate configuration at runtime, not during build time
+  if (!isBuildTime) {
+    validateEnvironment(config)
+  }
   
   return config
 }

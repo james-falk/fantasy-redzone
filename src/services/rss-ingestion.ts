@@ -246,19 +246,24 @@ class RSSIngestionService {
   /**
    * Process a single RSS article
    */
-  private async processArticle(article: any, sourceName: string): Promise<{ status: 'new' | 'updated' | 'skipped' }> {
+  private async processArticle(article: Record<string, unknown>, sourceName: string): Promise<{ status: 'new' | 'updated' | 'skipped' }> {
     try {
       // Extract image from article content or use default
       let image = ''
-      if (article.enclosure && article.enclosure.url) {
-        image = article.enclosure.url
-      } else if (article['media:content'] && article['media:content']['$'] && article['media:content']['$'].url) {
-        image = article['media:content']['$'].url
-      } else if (article['media:thumbnail'] && article['media:thumbnail']['$'] && article['media:thumbnail']['$'].url) {
-        image = article['media:thumbnail']['$'].url
+      const enclosure = article.enclosure as Record<string, unknown> | undefined
+      const mediaContent = article['media:content'] as Record<string, unknown> | undefined
+      const mediaThumbnail = article['media:thumbnail'] as Record<string, unknown> | undefined
+      const content = article.content as string | undefined
+      
+      if (enclosure && typeof enclosure.url === 'string') {
+        image = enclosure.url
+      } else if (mediaContent && mediaContent['$'] && typeof (mediaContent['$'] as Record<string, unknown>).url === 'string') {
+        image = (mediaContent['$'] as Record<string, unknown>).url as string
+      } else if (mediaThumbnail && mediaThumbnail['$'] && typeof (mediaThumbnail['$'] as Record<string, unknown>).url === 'string') {
+        image = (mediaThumbnail['$'] as Record<string, unknown>).url as string
       } else {
         // Try to extract image from content
-        const contentMatch = article.content?.match(/<img[^>]+src="([^"]+)"/i)
+        const contentMatch = content?.match(/<img[^>]+src="([^"]+)"/i)
         if (contentMatch) {
           image = contentMatch[1]
         }
@@ -286,15 +291,15 @@ class RSSIngestionService {
 
       // Convert article to resource format
       const resourceData = {
-        title: article.title || 'Untitled Article',
-        description: article.contentSnippet || article.content || '',
-        url: article.link || '',
+        title: (article.title as string) || 'Untitled Article',
+        description: (article.contentSnippet as string) || (article.content as string) || '',
+        url: (article.link as string) || '',
         image: image || getFallbackImage(sourceName),
         source: 'RSS',
-        author: article.creator || article.author || '',
+        author: (article.creator as string) || (article.author as string) || '',
         category: 'Article',
-        tags: article.categories || [],
-        pubDate: new Date(article.pubDate || article.isoDate || new Date()),
+        tags: (article.categories as string[]) || [],
+        pubDate: new Date((article.pubDate as string) || (article.isoDate as string) || new Date()),
         rawFeedItem: {
           ...article,
           sourceName: sourceName // Store the RSS feed name as sourceName
