@@ -17,11 +17,10 @@ export class YouTubeService {
 
   constructor() {
     // Use environment utility for consistent API key handling
-    this.apiKey = getEnvVar('YOUTUBE_API_KEY')
+    this.apiKey = getEnvVar('YOUTUBE_API_KEY') || ''
     
-    if (!this.apiKey) {
-      throw new Error('YouTube API key is required but not configured')
-    }
+    // Note: API key is optional since this project uses OAuth authentication
+    // The API key is only used for certain operations that don't require OAuth
   }
 
   /**
