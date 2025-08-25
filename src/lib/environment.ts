@@ -27,7 +27,7 @@ export interface EnvironmentConfig {
   mongodbUri: string
   
   // External APIs
-  youtubeApiKey: string
+  youtubeApiKey?: string
   
   // Feature Flags
   enableAiChat: boolean
@@ -54,8 +54,8 @@ function validateEnvironment(environment: EnvironmentConfig): void {
     'siteUrl',
     'siteName', 
     'siteDescription',
-    'mongodbUri',
-    'youtubeApiKey'
+    'mongodbUri'
+    // Note: youtubeApiKey is optional since this project uses OAuth authentication
   ]
 
   const missingFields = requiredFields.filter(field => !environment[field])
