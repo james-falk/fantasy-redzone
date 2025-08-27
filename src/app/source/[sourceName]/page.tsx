@@ -19,7 +19,43 @@ export default async function SourcePage({ params }: SourcePageProps) {
   // Connect to database
   const connection = await connectToDatabase()
   if (!connection) {
-    throw new Error('Failed to connect to database')
+    console.log('⚠️ [SOURCE] Database connection not available during build time')
+    return (
+      <div className="min-h-screen bg-gray-900">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-red-900/50 to-red-800/50 border-b border-red-600/20">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            {/* Home Button */}
+            <div className="mb-6">
+              <Link 
+                href="/"
+                className="inline-flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200"
+              >
+                ← Home
+              </Link>
+            </div>
+            
+            <div className="text-center">
+              <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
+                {decodedSourceName}
+              </h1>
+              <p className="text-xl text-gray-300 mb-6">
+                All content from {decodedSourceName}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <div className="text-red-400 text-6xl mb-4">🔄</div>
+            <h3 className="text-xl font-semibold text-white mb-2">Loading Content</h3>
+            <p className="text-gray-300">Content will be available when the site is deployed.</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Get all content from this specific source with multiple fallback strategies
@@ -147,7 +183,8 @@ export async function generateStaticParams() {
   try {
     const connection = await connectToDatabase()
     if (!connection) {
-      console.log('Failed to connect to database for static params')
+      console.log('⚠️ [STATIC PARAMS] Database connection not available during build time')
+      // Return empty array to avoid build failures
       return []
     }
 
@@ -161,7 +198,8 @@ export async function generateStaticParams() {
         sourceName: encodeURIComponent(sourceName)
       }))
   } catch (error) {
-    console.error('Error in generateStaticParams:', error)
+    console.error('❌ [STATIC PARAMS] Error in generateStaticParams:', error)
+    // Return empty array to avoid build failures
     return []
   }
 }
