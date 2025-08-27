@@ -74,10 +74,10 @@ export default async function SourcePage({ params }: SourcePageProps) {
     publishDate: (item.publishDate || item.createdAt) as string,
     source: (item.source === 'YouTube' ? 'youtube' : 'rss') as 'youtube' | 'rss' | 'news' | 'static',
     url: item.url as string,
-    sourceName: (item.rawFeedItem?.sourceName || item.author) as string,
+    sourceName: ((item.rawFeedItem as Record<string, unknown>)?.sourceName || item.author) as string,
     author: item.author as string,
-    viewCount: item.rawFeedItem?.viewCount ? parseInt(item.rawFeedItem.viewCount as string) : undefined,
-    duration: item.rawFeedItem?.duration as string,
+    viewCount: (item.rawFeedItem as Record<string, unknown>)?.viewCount ? parseInt((item.rawFeedItem as Record<string, unknown>).viewCount as string) : undefined,
+    duration: (item.rawFeedItem as Record<string, unknown>)?.duration as string,
     tags: (item.tags as string[]) || []
   }))
 

@@ -10,8 +10,8 @@ interface RefreshResponse {
   success: boolean
   message: string
   result: {
-    youtube?: IngestionResult | { error: string }
-    rss?: RSSIngestionResult | { error: string }
+    youtube?: IngestionResult | { error: string } | { stats: Record<string, unknown> }
+    rss?: RSSIngestionResult | { error: string } | { stats: Record<string, unknown> }
   }
   timestamp: string
   environment: string
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<RefreshRe
       }
     }
     
-    const result: { youtube?: IngestionResult | { error: string }; rss?: RSSIngestionResult | { error: string } } = {}
+    const result: { youtube?: IngestionResult | { error: string } | { stats: Record<string, unknown> }; rss?: RSSIngestionResult | { error: string } | { stats: Record<string, unknown> } } = {}
     let hasSuccess = false
     
     // Perform YouTube ingestion
@@ -126,7 +126,7 @@ export async function GET(): Promise<NextResponse<RefreshResponse>> {
       message: 'Refresh endpoint is active',
       result: { 
         youtube: { stats: youtubeStats },
-        rss: { stats: rssStats as RSSIngestionResult }
+        rss: { stats: rssStats }
       },
       timestamp: new Date().toISOString(),
       environment: getEnvVar('NODE_ENV')

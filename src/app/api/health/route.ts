@@ -4,6 +4,38 @@ import { connectToDatabase } from '@/lib/mongodb'
 import Resource from '@/models/Resource'
 import { getEnvVar } from '@/lib/environment'
 
+interface DatabaseDetails {
+  totalResources: number
+  youtubeCount: number
+  rssCount: number
+  connectionTime: string
+}
+
+interface ContentDetails {
+  latestContent: string
+  hoursSinceLastContent: number
+  latestSource: string
+}
+
+interface SchedulerDetails {
+  lastIngestion: string | undefined
+  lastIngestionStatus: 'success' | 'failed' | 'pending'
+  nextScheduled: string
+  totalIngestions: number
+  successfulIngestions: number
+  failedIngestions: number
+  youtubeStatus: 'healthy' | 'stale' | 'never'
+  rssStatus: 'healthy' | 'stale' | 'never'
+}
+
+interface IngestionDetails {
+  isHealthy: boolean
+  hoursSinceLastIngestion: number
+  hoursUntilNext: number
+  youtubeStatus: 'healthy' | 'stale' | 'never'
+  rssStatus: 'healthy' | 'stale' | 'never'
+}
+
 interface HealthResponse {
   success: boolean
   message: string
@@ -12,22 +44,22 @@ interface HealthResponse {
     database: {
       status: 'healthy' | 'warning' | 'critical'
       message: string
-      details?: any
+      details?: DatabaseDetails
     }
     content: {
       status: 'healthy' | 'warning' | 'critical'
       message: string
-      details?: any
+      details?: ContentDetails
     }
     scheduler: {
       status: 'healthy' | 'warning' | 'critical'
       message: string
-      details?: any
+      details?: SchedulerDetails
     }
     ingestion: {
       status: 'healthy' | 'warning' | 'critical'
       message: string
-      details?: any
+      details?: IngestionDetails
     }
   }
   recommendations: string[]
@@ -82,7 +114,7 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
           youtubeCount,
           rssCount,
           connectionTime: `${Date.now() - startTime}ms`
-        }
+        } as DatabaseDetails
         
         if (totalResources < 50) {
           response.checks.database.status = 'warning'
@@ -118,7 +150,7 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
           latestContent: latestResource.createdAt.toISOString(),
           hoursSinceLastContent: Math.floor(hoursSinceLastContent),
           latestSource: latestResource.source
-        }
+        } as ContentDetails
         
         if (hoursSinceLastContent > 48) {
           response.checks.content.status = 'critical'
@@ -154,7 +186,7 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
         failedIngestions: schedulerState.failedIngestions,
         youtubeStatus: ingestionHealth.youtubeStatus,
         rssStatus: ingestionHealth.rssStatus
-      }
+      } as SchedulerDetails
       
       if (schedulerState.lastIngestionStatus === 'failed') {
         response.checks.scheduler.status = 'critical'
@@ -192,7 +224,7 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
         hoursUntilNext: ingestionHealth.hoursUntilNext,
         youtubeStatus: ingestionHealth.youtubeStatus,
         rssStatus: ingestionHealth.rssStatus
-      }
+      } as IngestionDetails
       
       if (!ingestionHealth.isHealthy) {
         response.checks.ingestion.status = 'critical'
