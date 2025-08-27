@@ -65,8 +65,8 @@ export default async function SourcePage({ params }: SourcePageProps) {
   }
 
   // Transform content to match ProductCard interface
-  const transformedContent = sourceContent.map((item: any) => ({
-    id: (item._id as any).toString(),
+  const transformedContent = sourceContent.map((item: Record<string, unknown>) => ({
+    id: (item._id as { toString(): string }).toString(),
     title: item.title as string,
     shortDescription: item.description as string,
     cover: (item.image as string) || '/placeholder-image.jpg',
@@ -82,8 +82,8 @@ export default async function SourcePage({ params }: SourcePageProps) {
   }))
 
   // Get source statistics
-  const youtubeCount = sourceContent.filter((item: any) => item.source === 'YouTube').length
-  const rssCount = sourceContent.filter((item: any) => item.source === 'RSS').length
+  const youtubeCount = sourceContent.filter((item: Record<string, unknown>) => item.source === 'YouTube').length
+  const rssCount = sourceContent.filter((item: Record<string, unknown>) => item.source === 'RSS').length
   const totalCount = sourceContent.length
 
   return (

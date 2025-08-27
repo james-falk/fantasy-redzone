@@ -3,12 +3,15 @@ import YouTubeIngestionService from '@/services/youtube-ingestion'
 import RSSIngestionService from '@/services/rss-ingestion'
 import { getEnvVar } from '@/lib/environment'
 
+import { IngestionResult } from '@/services/youtube-ingestion'
+import { RSSIngestionResult } from '@/services/rss-ingestion'
+
 interface RefreshResponse {
   success: boolean
   message: string
   result: {
-    youtube?: any
-    rss?: any
+    youtube?: IngestionResult | { error: string }
+    rss?: RSSIngestionResult | { error: string }
   }
   timestamp: string
   environment: string
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<RefreshRe
       }
     }
     
-    const result: { youtube?: any; rss?: any } = {}
+    const result: { youtube?: IngestionResult | { error: string }; rss?: RSSIngestionResult | { error: string } } = {}
     let hasSuccess = false
     
     // Perform YouTube ingestion
@@ -123,7 +126,7 @@ export async function GET(): Promise<NextResponse<RefreshResponse>> {
       message: 'Refresh endpoint is active',
       result: { 
         youtube: { stats: youtubeStats },
-        rss: { stats: rssStats }
+        rss: { stats: rssStats as RSSIngestionResult }
       },
       timestamp: new Date().toISOString(),
       environment: getEnvVar('NODE_ENV')

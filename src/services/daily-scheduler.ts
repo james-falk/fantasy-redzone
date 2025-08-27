@@ -15,13 +15,15 @@ interface SchedulerState {
   lastRSSIngestion?: Date
 }
 
+import { RSSIngestionResult } from './rss-ingestion'
+
 interface IngestionLogData {
   ingestionId: string
   timestamp: Date
   status: 'success' | 'failed'
   duration: number
   youtubeResult: IngestionResult | null
-  rssResult: any | null
+  rssResult: RSSIngestionResult | null
   error: string | null
   environment: string
 }
@@ -113,7 +115,7 @@ export class DailyScheduler {
       }
 
       let youtubeResult: IngestionResult | null = null
-      let rssResult: any | null = null
+      let rssResult: RSSIngestionResult | null = null
       let youtubeError: string | null = null
       let rssError: string | null = null
 
@@ -204,7 +206,7 @@ export class DailyScheduler {
     status: 'success' | 'failed', 
     duration: number, 
     youtubeResult?: IngestionResult | null, 
-    rssResult?: any | null,
+    rssResult?: RSSIngestionResult | null,
     error?: string
   ): Promise<void> {
     try {
