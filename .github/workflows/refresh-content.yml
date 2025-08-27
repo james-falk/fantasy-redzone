@@ -12,6 +12,50 @@ jobs:
     steps:
       - name: Refresh Fantasy Red Zone Content
         run: |
-          curl -X GET "${{ secrets.SITE_URL }}/api/cron/daily?secret=${{ secrets.CRON_SECRET }}" \
+          echo "🔄 Starting Fantasy Red Zone content refresh..."
+          echo "📍 Site URL: ${{ secrets.SITE_URL }}"
+          echo "⏰ Timestamp: $(date -u)"
+          
+          # Check if required secrets are set
+          if [ -z "${{ secrets.SITE_URL }}" ]; then
+            echo "❌ Error: SITE_URL secret is not set"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "❌ Error: CRON_SECRET is not set"
+            exit 1
+          fi
+          
+          # Make the API call with proper error handling
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X GET \
             -H "Content-Type: application/json" \
-            -H "User-Agent: GitHub-Actions-Content-Refresh"
+            -H "User-Agent: GitHub-Actions-Content-Refresh" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/scheduler/cron")
+          
+          # Extract HTTP status code and response body
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "📊 HTTP Status: $HTTP_CODE"
+          echo "📄 Response: $BODY"
+          
+          # Check if the request was successful
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✅ Content refresh completed successfully!"
+            
+            # Parse response to show details
+            if echo "$BODY" | grep -q '"ingestionTriggered":true'; then
+              echo "🔄 Ingestion was triggered"
+            else
+              echo "⏰ Ingestion was not needed (not yet scheduled)"
+            fi
+          else
+            echo "❌ Content refresh failed with HTTP $HTTP_CODE"
+            echo "🔍 Response details: $BODY"
+            exit 1
+          fi
+          
+          echo "✅ Refresh job completed at $(date -u)"

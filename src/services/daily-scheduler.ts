@@ -1,5 +1,6 @@
 import { connectToDatabase } from '@/lib/mongodb'
 import YouTubeIngestionService, { IngestionResult } from './youtube-ingestion'
+import RSSIngestionService from './rss-ingestion'
 import { getEnvVar } from '@/lib/environment'
 
 interface SchedulerState {
@@ -10,6 +11,8 @@ interface SchedulerState {
   totalIngestions: number
   successfulIngestions: number
   failedIngestions: number
+  lastYouTubeIngestion?: Date
+  lastRSSIngestion?: Date
 }
 
 interface IngestionLogData {
@@ -17,22 +20,25 @@ interface IngestionLogData {
   timestamp: Date
   status: 'success' | 'failed'
   duration: number
-  result: IngestionResult | null
+  youtubeResult: IngestionResult | null
+  rssResult: any | null
   error: string | null
   environment: string
 }
 
 /**
- * Daily YouTube ingestion scheduler service
- * Handles scheduled ingestion at 6:00 AM EST daily
+ * Daily content ingestion scheduler service
+ * Handles scheduled ingestion of both YouTube and RSS content at 6:00 AM EST daily
  */
 export class DailyScheduler {
   private static instance: DailyScheduler
-  private ingestionService: YouTubeIngestionService
+  private youtubeIngestionService: YouTubeIngestionService
+  private rssIngestionService: RSSIngestionService
   private schedulerState: SchedulerState
 
   private constructor() {
-    this.ingestionService = new YouTubeIngestionService()
+    this.youtubeIngestionService = new YouTubeIngestionService()
+    this.rssIngestionService = new RSSIngestionService()
     this.schedulerState = {
       lastIngestionTime: null,
       lastIngestionStatus: 'pending',
@@ -83,13 +89,13 @@ export class DailyScheduler {
   }
 
   /**
-   * Perform daily YouTube ingestion
+   * Perform daily content ingestion (YouTube + RSS)
    */
   public async performDailyIngestion(): Promise<void> {
     const startTime = Date.now()
     const ingestionId = `daily-${new Date().toISOString().split('T')[0]}`
     
-    console.log('🔄 [SCHEDULER] Starting daily YouTube ingestion:', {
+    console.log('🔄 [SCHEDULER] Starting daily content ingestion:', {
       ingestionId,
       startTime: new Date(startTime).toISOString(),
       environment: getEnvVar('NODE_ENV')
@@ -106,31 +112,69 @@ export class DailyScheduler {
         throw new Error('Failed to connect to database')
       }
 
-      // Perform ingestion from all enabled sources
-      const result = await this.ingestionService.ingestFromAllSources()
-      
-      // Update scheduler state on success
-      this.schedulerState.lastIngestionTime = new Date()
-      this.schedulerState.lastIngestionStatus = 'success'
-      this.schedulerState.successfulIngestions++
-      this.schedulerState.nextScheduledTime = this.calculateNextScheduledTime()
-      
-      const duration = Date.now() - startTime
-      
-             console.log('✅ [SCHEDULER] Daily ingestion completed successfully:', {
-         ingestionId,
-         duration: `${duration}ms`,
-         result: {
-           totalVideos: result.totalVideos,
-           newVideos: result.newVideos,
-           updatedVideos: result.updatedVideos,
-           skippedVideos: result.skippedVideos
-         },
-         nextScheduledTime: this.schedulerState.nextScheduledTime.toISOString()
-       })
+      let youtubeResult: IngestionResult | null = null
+      let rssResult: any | null = null
+      let youtubeError: string | null = null
+      let rssError: string | null = null
 
-      // Log to database for tracking
-      await this.logIngestionToDatabase(ingestionId, 'success', duration, result)
+      // Perform YouTube ingestion
+      try {
+        console.log('📺 [SCHEDULER] Starting YouTube ingestion...')
+        youtubeResult = await this.youtubeIngestionService.ingestFromAllSources()
+        this.schedulerState.lastYouTubeIngestion = new Date()
+        console.log('✅ [SCHEDULER] YouTube ingestion completed:', {
+          totalVideos: youtubeResult.totalVideos,
+          newVideos: youtubeResult.newVideos,
+          updatedVideos: youtubeResult.updatedVideos
+        })
+      } catch (error) {
+        youtubeError = error instanceof Error ? error.message : 'Unknown YouTube error'
+        console.error('❌ [SCHEDULER] YouTube ingestion failed:', youtubeError)
+      }
+
+      // Perform RSS ingestion
+      try {
+        console.log('📰 [SCHEDULER] Starting RSS ingestion...')
+        rssResult = await this.rssIngestionService.ingestFromAllSources()
+        this.schedulerState.lastRSSIngestion = new Date()
+        console.log('✅ [SCHEDULER] RSS ingestion completed:', {
+          totalArticles: rssResult.totalArticles,
+          newArticles: rssResult.newArticles,
+          updatedArticles: rssResult.updatedArticles
+        })
+      } catch (error) {
+        rssError = error instanceof Error ? error.message : 'Unknown RSS error'
+        console.error('❌ [SCHEDULER] RSS ingestion failed:', rssError)
+      }
+
+      // Determine overall success
+      const hasYouTubeSuccess = youtubeResult && !youtubeError
+      const hasRSSSuccess = rssResult && !rssError
+      const overallSuccess = hasYouTubeSuccess || hasRSSSuccess // Success if at least one works
+
+      if (overallSuccess) {
+        // Update scheduler state on success
+        this.schedulerState.lastIngestionTime = new Date()
+        this.schedulerState.lastIngestionStatus = 'success'
+        this.schedulerState.successfulIngestions++
+        this.schedulerState.nextScheduledTime = this.calculateNextScheduledTime()
+        
+        const duration = Date.now() - startTime
+        
+        console.log('✅ [SCHEDULER] Daily ingestion completed successfully:', {
+          ingestionId,
+          duration: `${duration}ms`,
+          youtube: hasYouTubeSuccess ? '✅' : '❌',
+          rss: hasRSSSuccess ? '✅' : '❌',
+          nextScheduledTime: this.schedulerState.nextScheduledTime.toISOString()
+        })
+
+        // Log to database for tracking
+        await this.logIngestionToDatabase(ingestionId, 'success', duration, youtubeResult, rssResult)
+      } else {
+        // Both failed
+        throw new Error(`YouTube: ${youtubeError}, RSS: ${rssError}`)
+      }
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error'
@@ -148,7 +192,7 @@ export class DailyScheduler {
       })
 
       // Log to database for tracking
-      await this.logIngestionToDatabase(ingestionId, 'failed', duration, null, errorMsg)
+      await this.logIngestionToDatabase(ingestionId, 'failed', duration, null, null, errorMsg)
     }
   }
 
@@ -159,7 +203,8 @@ export class DailyScheduler {
     ingestionId: string, 
     status: 'success' | 'failed', 
     duration: number, 
-    result?: IngestionResult | null, 
+    youtubeResult?: IngestionResult | null, 
+    rssResult?: any | null,
     error?: string
   ): Promise<void> {
     try {
@@ -175,7 +220,8 @@ export class DailyScheduler {
         timestamp: new Date(),
         status,
         duration,
-        result: result || null,
+        youtubeResult: youtubeResult || null,
+        rssResult: rssResult || null,
         error: error || null,
         environment: getEnvVar('NODE_ENV')
       }
@@ -186,7 +232,7 @@ export class DailyScheduler {
       
       await Resource.create({
         title: `Daily Ingestion Log - ${ingestionId}`,
-        description: `Scheduled YouTube ingestion ${status}`,
+        description: `Scheduled content ingestion ${status}`,
         url: `scheduler://${ingestionId}`,
         source: 'Scheduler',
         category: 'System',
@@ -233,6 +279,56 @@ export class DailyScheduler {
   public async triggerManualIngestion(): Promise<void> {
     console.log('🔄 [SCHEDULER] Manual ingestion triggered')
     await this.performDailyIngestion()
+  }
+
+  /**
+   * Check if content is stale (no ingestion in last 24 hours)
+   */
+  public isContentStale(): boolean {
+    const lastIngestion = this.schedulerState.lastIngestionTime
+    if (!lastIngestion) return true
+    
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    return lastIngestion < twentyFourHoursAgo
+  }
+
+  /**
+   * Get ingestion health status
+   */
+  public getIngestionHealth(): {
+    isHealthy: boolean
+    lastIngestion: Date | null
+    hoursSinceLastIngestion: number
+    nextScheduled: Date
+    hoursUntilNext: number
+    youtubeStatus: 'healthy' | 'stale' | 'never'
+    rssStatus: 'healthy' | 'stale' | 'never'
+  } {
+    const now = new Date()
+    const lastIngestion = this.schedulerState.lastIngestionTime
+    const hoursSinceLastIngestion = lastIngestion 
+      ? Math.floor((now.getTime() - lastIngestion.getTime()) / (1000 * 60 * 60))
+      : Infinity
+    
+    const hoursUntilNext = Math.floor(this.getTimeUntilNextIngestion() / (1000 * 60 * 60))
+    
+    const youtubeStatus = this.schedulerState.lastYouTubeIngestion
+      ? (now.getTime() - this.schedulerState.lastYouTubeIngestion.getTime() < 24 * 60 * 60 * 1000 ? 'healthy' : 'stale')
+      : 'never'
+    
+    const rssStatus = this.schedulerState.lastRSSIngestion
+      ? (now.getTime() - this.schedulerState.lastRSSIngestion.getTime() < 24 * 60 * 60 * 1000 ? 'healthy' : 'stale')
+      : 'never'
+    
+    return {
+      isHealthy: hoursSinceLastIngestion < 24,
+      lastIngestion,
+      hoursSinceLastIngestion,
+      nextScheduled: this.schedulerState.nextScheduledTime,
+      hoursUntilNext,
+      youtubeStatus,
+      rssStatus
+    }
   }
 }
 

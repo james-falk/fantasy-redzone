@@ -20,9 +20,10 @@ interface ProductCardProps {
     tags: string[]
   }
   featured?: boolean
+  hideSourceBadge?: boolean
 }
 
-export default function ProductCard({ post, featured = false }: ProductCardProps) {
+export default function ProductCard({ post, featured = false, hideSourceBadge = false }: ProductCardProps) {
   const [imageError, setImageError] = useState(false)
 
   const getSourceBadge = (source: string) => {
@@ -80,7 +81,7 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
         </div>
       )}
 
-      {/* Source Badge */}
+      {/* Source Type Badge */}
       <div className="absolute top-3 right-3 z-10">
         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${sourceBadge.bg} ${sourceBadge.text}`}>
           {sourceBadge.label}
@@ -88,7 +89,7 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
       </div>
 
       {/* Image Section (60-70% of card height) */}
-      <div className={`relative h-48 lg:h-52 ${post.source === 'rss' ? 'bg-gray-800' : ''}`}>
+      <div className={`relative h-40 sm:h-44 md:h-48 lg:h-52 ${post.source === 'rss' ? 'bg-gray-800' : ''}`}>
         {!imageError ? (
           <Image
             src={post.cover}
@@ -110,16 +111,24 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
       </div>
 
       {/* Content Section */}
-      <div className="p-4">
-        {/* Metadata Row */}
-        <div className="flex items-center gap-2 mb-2">
+      <div className="p-3 sm:p-4 relative z-10">
+                {/* Metadata Row */}
+        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-2">
           <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-medium">
             {post.category}
           </span>
-          <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
-            {post.source === 'rss' ? (post.sourceName || 'RSS') : (post.sourceName || 'Unknown Source')}
-          </span>
-          <span className="text-gray-400 text-xs ml-auto">
+          {!hideSourceBadge && post.sourceName && (
+            <a
+              href={`/source/${encodeURIComponent(post.sourceName)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium hover:bg-green-500 transition-colors duration-200 cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {post.source === 'rss' ? (post.sourceName || 'RSS') : (post.sourceName || 'Unknown Source')}
+            </a>
+          )}
+          <span className="text-gray-400 text-xs ml-auto hidden sm:block">
             {formatDate(post.publishDate)}
           </span>
         </div>
@@ -131,15 +140,15 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
           </div>
         )}
 
-        {/* Headline */}
-        <h3 className="font-bold text-white text-base mb-2 line-clamp-2 group-hover:text-yellow-400 transition-colors duration-300">
-          {post.title}
-        </h3>
+                 {/* Headline */}
+         <h3 className="font-bold text-white text-sm sm:text-base mb-2 line-clamp-2 hover:text-yellow-400 transition-colors duration-300">
+           {post.title}
+         </h3>
 
-        {/* Description */}
-        <p className="text-gray-300 text-sm line-clamp-3 group-hover:text-gray-200 transition-colors duration-300">
-          {post.shortDescription}
-        </p>
+         {/* Description */}
+         <p className="text-gray-300 text-xs sm:text-sm line-clamp-3 hover:text-gray-200 transition-colors duration-300">
+           {post.shortDescription}
+         </p>
 
         {/* Additional Metadata */}
         <div className="flex items-center justify-between mt-3 text-xs text-gray-400">
@@ -159,7 +168,7 @@ export default function ProductCard({ post, featured = false }: ProductCardProps
 
       {/* Click Overlay */}
       <div 
-        className="absolute inset-0 cursor-pointer"
+        className="absolute inset-0 cursor-pointer z-0"
         onClick={() => {
           if (post.url) {
             window.open(post.url, isExternal ? '_blank' : '_self')

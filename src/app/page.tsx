@@ -8,8 +8,18 @@ import ClientPageWrapper from '@/components/client-page-wrapper'
 import { connectToDatabase } from '@/lib/mongodb'
 import Resource from '@/models/Resource'
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   console.log('🚀 [PRODUCTION DEBUG] Home page starting...')
+  
+  // Get current page from URL params, default to 1
+  const params = await searchParams
+  const currentPage = parseInt(params.page || '1')
+  const itemsPerPage = 100
+  const skip = (currentPage - 1) * itemsPerPage
   
   // Fetch all content (YouTube videos and RSS articles) directly from database
   const connection = await connectToDatabase()
@@ -31,15 +41,35 @@ export default async function Home() {
     tags: string[]
   }> = []
   
+  let totalItems = 0
+  let totalPages = 0
+  let totalVideos = 0
+  let totalNews = 0
+  
   if (connection) {
     console.log('📊 [PRODUCTION DEBUG] Querying MongoDB for all content...')
     
     try {
-                         const allResources = await Resource.find({
+      // Get total count for pagination
+      totalItems = await Resource.countDocuments({ isActive: true })
+      totalPages = Math.ceil(totalItems / itemsPerPage)
+      
+      // Get total counts by source type
+      totalVideos = await Resource.countDocuments({ 
+        isActive: true, 
+        source: 'YouTube' 
+      })
+      totalNews = await Resource.countDocuments({ 
+        isActive: true, 
+        source: 'RSS' 
+      })
+      
+      const allResources = await Resource.find({
         isActive: true
       })
       .sort({ pubDate: -1 })
-      .limit(200)
+      .skip(skip)
+      .limit(itemsPerPage)
       .lean()
 
       console.log('📺 [PRODUCTION DEBUG] Found total resources:', allResources.length)
@@ -145,7 +175,12 @@ export default async function Home() {
       <main>
         <ClientPageWrapper 
           initialContent={transformedContent} 
-          featuredContentIds={featuredContentIds} 
+          featuredContentIds={featuredContentIds}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          totalVideos={totalVideos}
+          totalNews={totalNews}
         />
         <Faq items={Faqs} />
         <Newsletter />

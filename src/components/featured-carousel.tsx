@@ -149,7 +149,7 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
                         </div>
                       )}
 
-                      {/* Source Badge */}
+                      {/* Source Type Badge */}
                       <div className="absolute top-3 right-3 z-10">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${sourceBadge.bg} ${sourceBadge.text}`}>
                           {sourceBadge.label}
@@ -169,13 +169,13 @@ export default function FeaturedCarousel({ featuredContent }: FeaturedCarouselPr
 
                       {/* Content Info - Simplified thumbnail layout */}
                       <div className="p-4">
-                        <h3 className={`font-bold text-white transition-colors duration-300 line-clamp-2 ${
-                          isCurrent 
-                            ? 'text-base lg:text-lg group-hover:text-yellow-400' 
-                            : 'text-sm group-hover:text-yellow-400'
-                        }`}>
-                          {content.title}
-                        </h3>
+                                                 <h3 className={`font-bold text-white transition-colors duration-300 line-clamp-2 ${
+                           isCurrent 
+                             ? 'text-base lg:text-lg hover:text-yellow-400' 
+                             : 'text-sm hover:text-yellow-400'
+                         }`}>
+                           {content.title}
+                         </h3>
                       </div>
                     </div>
                   </div>

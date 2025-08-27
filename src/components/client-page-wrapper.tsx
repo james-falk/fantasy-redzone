@@ -22,11 +22,21 @@ interface ClientPageWrapperProps {
     tags: string[]
   }>
   featuredContentIds: string[]
+  currentPage: number
+  totalPages: number
+  totalItems: number
+  totalVideos: number
+  totalNews: number
 }
 
 export default function ClientPageWrapper({ 
   initialContent, 
-  featuredContentIds 
+  featuredContentIds,
+  currentPage,
+  totalPages,
+  totalItems,
+  totalVideos,
+  totalNews
 }: ClientPageWrapperProps) {
   const [content, setContent] = useState(initialContent)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -54,12 +64,12 @@ export default function ClientPageWrapper({
 
   return (
     <>
-      {/* Refresh Indicator */}
+      {/* Refresh Indicator - Only show manual refresh button */}
       <div className="container mx-auto px-4 py-2">
         <RefreshIndicator 
           onRefresh={handleRefresh}
-          pollingInterval={30 * 60 * 1000} // 30 minutes
-          showStatus={false}
+          pollingInterval={0} // Disable polling
+          showStatus={true} // Show the manual refresh button
           className="mb-4"
         />
       </div>
@@ -69,7 +79,12 @@ export default function ClientPageWrapper({
         <FeaturedCarousel featuredContent={featuredContent} />
         <ContentSection 
           initialContent={content} 
-          featuredContentIds={featuredContentIds} 
+          featuredContentIds={featuredContentIds}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          totalVideos={totalVideos}
+          totalNews={totalNews}
         />
       </main>
 

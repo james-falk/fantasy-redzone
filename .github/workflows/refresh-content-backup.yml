@@ -1,0 +1,109 @@
+name: Refresh Content (Backup)
+
+on:
+  schedule:
+    # Run every 6 hours as backup: 12 AM, 6 AM, 12 PM, 6 PM UTC
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh Fantasy Red Zone Content (Backup)
+        run: |
+          echo "🔄 Starting Fantasy Red Zone content refresh (Backup)..."
+          echo "📍 Site URL: ${{ secrets.SITE_URL }}"
+          echo "⏰ Timestamp: $(date -u)"
+          
+          # Check if required secrets are set
+          if [ -z "${{ secrets.SITE_URL }}" ]; then
+            echo "❌ Error: SITE_URL secret is not set"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.REFRESH_TOKEN }}" ]; then
+            echo "❌ Error: REFRESH_TOKEN is not set"
+            exit 1
+          fi
+          
+          # Try multiple refresh endpoints for redundancy
+          echo "🔄 Attempting refresh via multiple endpoints..."
+          
+          # Method 1: Try the scheduler cron endpoint
+          echo "📋 Method 1: Scheduler Cron Endpoint"
+          RESPONSE1=$(curl -s -w "\n%{http_code}" \
+            -X GET \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: GitHub-Actions-Content-Refresh-Backup" \
+            -H "Authorization: Bearer ${{ secrets.REFRESH_TOKEN }}" \
+            "${{ secrets.SITE_URL }}/api/scheduler/cron")
+          
+          HTTP_CODE1=$(echo "$RESPONSE1" | tail -n1)
+          BODY1=$(echo "$RESPONSE1" | head -n -1)
+          
+          echo "📊 Method 1 HTTP Status: $HTTP_CODE1"
+          
+          if [ "$HTTP_CODE1" -eq 200 ]; then
+            echo "✅ Method 1 succeeded!"
+            echo "📄 Response: $BODY1"
+            exit 0
+          else
+            echo "⚠️ Method 1 failed with HTTP $HTTP_CODE1"
+            echo "📄 Response: $BODY1"
+          fi
+          
+          # Method 2: Try the manual refresh endpoint
+          echo "📋 Method 2: Manual Refresh Endpoint"
+          RESPONSE2=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: GitHub-Actions-Content-Refresh-Backup" \
+            -H "Authorization: Bearer ${{ secrets.REFRESH_TOKEN }}" \
+            "${{ secrets.SITE_URL }}/api/refresh")
+          
+          HTTP_CODE2=$(echo "$RESPONSE2" | tail -n1)
+          BODY2=$(echo "$RESPONSE2" | head -n -1)
+          
+          echo "📊 Method 2 HTTP Status: $HTTP_CODE2"
+          
+          if [ "$HTTP_CODE2" -eq 200 ]; then
+            echo "✅ Method 2 succeeded!"
+            echo "📄 Response: $BODY2"
+            exit 0
+          else
+            echo "⚠️ Method 2 failed with HTTP $HTTP_CODE2"
+            echo "📄 Response: $BODY2"
+          fi
+          
+          # Method 3: Try the scheduler POST endpoint
+          echo "📋 Method 3: Scheduler POST Endpoint"
+          RESPONSE3=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: GitHub-Actions-Content-Refresh-Backup" \
+            -H "Authorization: Bearer ${{ secrets.REFRESH_TOKEN }}" \
+            "${{ secrets.SITE_URL }}/api/scheduler")
+          
+          HTTP_CODE3=$(echo "$RESPONSE3" | tail -n1)
+          BODY3=$(echo "$RESPONSE3" | head -n -1)
+          
+          echo "📊 Method 3 HTTP Status: $HTTP_CODE3"
+          
+          if [ "$HTTP_CODE3" -eq 200 ]; then
+            echo "✅ Method 3 succeeded!"
+            echo "📄 Response: $BODY3"
+            exit 0
+          else
+            echo "❌ Method 3 failed with HTTP $HTTP_CODE3"
+            echo "📄 Response: $BODY3"
+          fi
+          
+          # All methods failed
+          echo "❌ All refresh methods failed!"
+          echo "🔍 Troubleshooting information:"
+          echo "   - Site URL: ${{ secrets.SITE_URL }}"
+          echo "   - Refresh Token: ${REFRESH_TOKEN:0:10}..."
+          echo "   - Timestamp: $(date -u)"
+          
+          exit 1

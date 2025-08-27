@@ -75,9 +75,10 @@ h1, h2, h3, h4, h5, h6 {
   }
   
   .redzone-card {
-    background: linear-gradient(135deg, rgba(31, 31, 31, 0.95) 0%, rgba(15, 15, 15, 0.95) 100%);
+    background: #282c34;
     border: 1px solid rgba(220, 20, 60, 0.2);
     backdrop-filter: blur(10px);
+    color: #ffffff;
   }
   
   .redzone-hero-bg {

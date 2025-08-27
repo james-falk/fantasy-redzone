@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface RefreshCheckResponse {
@@ -35,7 +35,7 @@ interface RefreshIndicatorProps {
 
 export default function RefreshIndicator({
   onRefresh,
-  pollingInterval = 30 * 60 * 1000, // 30 minutes default
+  pollingInterval = 30 * 60 * 1000, // 30 minutes default (DISABLED)
   showStatus = false,
   className = ''
 }: RefreshIndicatorProps) {
@@ -44,12 +44,7 @@ export default function RefreshIndicator({
   const [lastResponse, setLastResponse] = useState<RefreshCheckResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showNewContentAlert, setShowNewContentAlert] = useState(false)
-  
-  // Use ref to track the latest check time without causing re-renders
-  const lastCheckTimeRef = useRef<Date>(new Date())
-  
-  // Use ref to store the latest performRefreshCheck function
-  const performRefreshCheckRef = useRef<() => Promise<RefreshCheckResponse | null> | undefined>(undefined)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   /**
    * Performs a refresh check by calling the API
@@ -61,7 +56,7 @@ export default function RefreshIndicator({
       
       console.log('🔄 [FRONTEND] Performing refresh check...')
       
-      const response = await fetch(`/api/refresh-check?lastCheck=${lastCheckTimeRef.current.toISOString()}`)
+      const response = await fetch(`/api/refresh-check?lastCheck=${lastCheckTime.toISOString()}`)
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
@@ -70,19 +65,18 @@ export default function RefreshIndicator({
       const data: RefreshCheckResponse = await response.json()
       setLastResponse(data)
       
-      // Update both state and ref
+      // Update check time
       const newCheckTime = new Date()
       setLastCheckTime(newCheckTime)
-      lastCheckTimeRef.current = newCheckTime
       
-             console.log('✅ [FRONTEND] Refresh check completed:', {
-         newDataAvailable: data.newDataAvailable,
-         resourceCount: data.resourceCount,
-         youtubeVideosCount: data.youtubeVideosCount,
-         schedulerStatus: data.schedulerStatus,
-         lastIngestion: data.lastIngestionTime,
-         nextScheduled: data.nextScheduledIngestion
-       })
+      console.log('✅ [FRONTEND] Refresh check completed:', {
+        newDataAvailable: data.newDataAvailable,
+        resourceCount: data.resourceCount,
+        youtubeVideosCount: data.youtubeVideosCount,
+        schedulerStatus: data.schedulerStatus,
+        lastIngestion: data.lastIngestionTime,
+        nextScheduled: data.nextScheduledIngestion
+      })
       
       // Show alert if new content is available
       if (data.newDataAvailable) {
@@ -102,13 +96,10 @@ export default function RefreshIndicator({
       console.error('❌ [FRONTEND] Refresh check failed:', errorMsg)
       setError(errorMsg)
       return null
-         } finally {
-       setIsChecking(false)
-     }
-   }, []) // Remove lastCheckTime dependency
-   
-   // Store the latest function in ref
-   performRefreshCheckRef.current = performRefreshCheck
+    } finally {
+      setIsChecking(false)
+    }
+  }, [lastCheckTime])
 
   /**
    * Triggers a manual refresh
@@ -116,15 +107,50 @@ export default function RefreshIndicator({
   const handleManualRefresh = useCallback(async () => {
     console.log('🔄 [FRONTEND] Manual refresh triggered')
     
-    if (performRefreshCheckRef.current) {
-      const result = await performRefreshCheckRef.current()
+    try {
+      setIsRefreshing(true)
+      setError(null)
       
-      if (result?.newDataAvailable && onRefresh) {
-        console.log('🔄 [FRONTEND] Calling onRefresh callback...')
-        onRefresh()
+      // Call the refresh endpoint directly
+      const response = await fetch('/api/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        console.log('✅ [FRONTEND] Manual refresh successful:', data.result)
+        
+        // Show success alert
+        setShowNewContentAlert(true)
+        setTimeout(() => {
+          setShowNewContentAlert(false)
+        }, 5000)
+        
+        // Call the onRefresh callback to reload the page
+        if (onRefresh) {
+          console.log('🔄 [FRONTEND] Calling onRefresh callback...')
+          onRefresh()
+        }
+      } else {
+        throw new Error(data.message || 'Refresh failed')
+      }
+      
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      console.error('❌ [FRONTEND] Manual refresh failed:', errorMsg)
+      setError(errorMsg)
+    } finally {
+      setIsRefreshing(false)
     }
-  }, [onRefresh]) // Remove performRefreshCheck dependency
+  }, [onRefresh])
 
   /**
    * Formats time since last resource
@@ -160,28 +186,24 @@ export default function RefreshIndicator({
     return `${days}d ago`
   }
 
-  // Set up polling interval
-  useEffect(() => {
-    console.log('🔄 [FRONTEND] Setting up refresh polling every', pollingInterval, 'ms')
-    
-    // Perform initial check
-    if (performRefreshCheckRef.current) {
-      performRefreshCheckRef.current()
-    }
-    
-    // Set up interval
-    const interval = setInterval(() => {
-      if (performRefreshCheckRef.current) {
-        performRefreshCheckRef.current()
-      }
-    }, pollingInterval)
-    
-    // Cleanup on unmount
-    return () => {
-      console.log('🔄 [FRONTEND] Cleaning up refresh polling')
-      clearInterval(interval)
-    }
-  }, [pollingInterval]) // Only depend on pollingInterval
+  // DISABLED: Automatic polling to prevent performance issues
+  // useEffect(() => {
+  //   console.log('🔄 [FRONTEND] Setting up refresh polling every', pollingInterval, 'ms')
+  //   
+  //   // Perform initial check
+  //   performRefreshCheck()
+  //   
+  //   // Set up interval
+  //   const interval = setInterval(() => {
+  //     performRefreshCheck()
+  //   }, pollingInterval)
+  //   
+  //   // Cleanup on unmount
+  //   return () => {
+  //     console.log('🔄 [FRONTEND] Cleaning up refresh polling')
+  //     clearInterval(interval)
+  //   }
+  // }, [pollingInterval, performRefreshCheck])
 
   return (
     <div className={`refresh-indicator ${className}`}>
@@ -189,7 +211,7 @@ export default function RefreshIndicator({
       {showNewContentAlert && (
         <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-right duration-300">
           <CheckCircle className="w-4 h-4" />
-          <span className="text-sm font-medium">New content available!</span>
+          <span className="text-sm font-medium">Content refreshed successfully!</span>
           <button
             onClick={() => setShowNewContentAlert(false)}
             className="ml-2 text-white/80 hover:text-white"
@@ -198,6 +220,18 @@ export default function RefreshIndicator({
           </button>
         </div>
       )}
+
+      {/* Manual Refresh Button - Always visible */}
+      <div className="flex items-center justify-center mb-4">
+        <button
+          onClick={handleManualRefresh}
+          disabled={isRefreshing}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh Content'}
+        </button>
+      </div>
 
       {/* Status Display */}
       {showStatus && (
@@ -227,16 +261,6 @@ export default function RefreshIndicator({
               • Last check: {formatLastCheck(lastCheckTime)}
             </span>
           )}
-
-          {/* Manual Refresh Button */}
-          <button
-            onClick={handleManualRefresh}
-            disabled={isChecking}
-            className="ml-2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-          >
-            <RefreshCw className={`w-3 h-3 ${isChecking ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
         </div>
       )}
 

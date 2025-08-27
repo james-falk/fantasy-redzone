@@ -5,7 +5,8 @@ import { useState } from 'react'
 
 const navLinks = [
   { title: 'ANALYSIS', link: '#' },
-  { title: 'RANKINGS', link: '#' },
+  { title: 'RANKINGS', link: '/rankings' },
+  { title: 'SOURCES', link: '/sources' },
   { title: 'TOOLS', link: '#' },
   { title: 'VIDEOS', link: '#' },
 ]
@@ -64,13 +65,6 @@ const Navbar = () => {
         
         {/* CTA button */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="hidden sm:flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-4 py-2 text-sm font-semibold text-white transition-all duration-300 ease-in-out hover:scale-105 border border-white/20 hover:border-white/40"
-          >
-            <PlayCircle size={16} />
-            <span>WATCH LIVE</span>
-          </button>
           <button
             type="button"
             className="flex items-center gap-2 rounded-lg redzone-gradient-intense hover:scale-105 transform transition-all duration-300 px-4 py-2 text-sm font-bold text-white tracking-wide shadow-lg redzone-glow"

@@ -28,26 +28,22 @@ export default function ContentFilterComponent({ content, onFilterChange }: Cont
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedSource, setSelectedSource] = useState('')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   // Extract unique values from content
   const categories = useMemo(() => [...new Set(content.map(item => item.category))].sort(), [content])
   const sources = useMemo(() => [...new Set(content.map(item => item.source))].sort(), [content])
-  const allTags = useMemo(() => {
-    const tags = content.flatMap(item => item.tags)
-    return [...new Set(tags)].sort()
-  }, [content])
 
   // Apply filters
   const filteredContent = useMemo(() => {
     return content.filter(item => {
-      // Search filter
+      // Search filter (now includes tags)
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase()
         const titleMatch = item.title.toLowerCase().includes(searchLower)
         const descMatch = item.shortDescription.toLowerCase().includes(searchLower)
-        if (!titleMatch && !descMatch) return false
+        const tagMatch = item.tags.some(tag => tag.toLowerCase().includes(searchLower))
+        if (!titleMatch && !descMatch && !tagMatch) return false
       }
 
       // Category filter
@@ -60,15 +56,9 @@ export default function ContentFilterComponent({ content, onFilterChange }: Cont
         return false
       }
 
-      // Tags filter
-      if (selectedTags.length > 0) {
-        const hasTag = selectedTags.some(tag => item.tags.includes(tag))
-        if (!hasTag) return false
-      }
-
       return true
     })
-  }, [content, searchTerm, selectedCategory, selectedSource, selectedTags])
+  }, [content, searchTerm, selectedCategory, selectedSource])
 
   // Update parent component
   useEffect(() => {
@@ -79,18 +69,9 @@ export default function ContentFilterComponent({ content, onFilterChange }: Cont
     setSearchTerm('')
     setSelectedCategory('')
     setSelectedSource('')
-    setSelectedTags([])
   }
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    )
-  }
-
-  const hasActiveFilters = searchTerm || selectedCategory || selectedSource || selectedTags.length > 0
+  const hasActiveFilters = searchTerm || selectedCategory || selectedSource
 
   return (
     <div className="mb-8">
@@ -99,7 +80,7 @@ export default function ContentFilterComponent({ content, onFilterChange }: Cont
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
         <input
           type="text"
-          placeholder="Search fantasy football content..."
+          placeholder="Search content, tags, or keywords..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
@@ -116,7 +97,7 @@ export default function ContentFilterComponent({ content, onFilterChange }: Cont
           Filters
           {hasActiveFilters && (
             <span className="bg-yellow-500 text-black text-xs px-2 py-1 rounded-full">
-              {[searchTerm, selectedCategory, selectedSource, selectedTags.length].filter(Boolean).length}
+              {[searchTerm, selectedCategory, selectedSource].filter(Boolean).length}
             </span>
           )}
         </button>
@@ -200,42 +181,12 @@ export default function ContentFilterComponent({ content, onFilterChange }: Cont
                     </button>
                   </span>
                 )}
-                {selectedTags.map(tag => (
-                  <span key={tag} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500 text-black">
-                    {tag}
-                    <button
-                      onClick={() => toggleTag(tag)}
-                      className="ml-1 hover:text-gray-700"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
+
               </div>
             </div>
           </div>
 
-          {/* Tags Filter */}
-          {allTags.length > 0 && (
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-300 mb-3">Tags</label>
-              <div className="flex flex-wrap gap-2">
-                {allTags.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                      selectedTags.includes(tag)
-                        ? 'bg-yellow-500 text-black'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       )}
     </div>

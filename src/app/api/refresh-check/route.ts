@@ -26,9 +26,19 @@ interface RefreshCheckResponse {
   }
 }
 
+// Simple in-memory cache to prevent excessive database queries
+let cache: {
+  data: RefreshCheckResponse | null
+  timestamp: number
+  lastCheckTime: string
+} | null = null
+
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes cache
+
 /**
  * Checks if new content has been ingested since the last check
  * Uses efficient querying based on timestamps and resource counts
+ * Now includes caching to prevent excessive database queries
  */
 export async function GET(request: Request) {
   const startTime = Date.now()
@@ -43,68 +53,63 @@ export async function GET(request: Request) {
     
     console.log('🔄 [REFRESH_CHECK] Last check time:', lastCheckTime.toISOString())
     
+    // Check cache first
+    const now = Date.now()
+    if (cache && 
+        (now - cache.timestamp) < CACHE_DURATION && 
+        cache.lastCheckTime === lastCheckTime.toISOString()) {
+      console.log('✅ [REFRESH_CHECK] Returning cached response')
+      return NextResponse.json(cache.data)
+    }
+    
     // Connect to database
     const connection = await connectToDatabase()
     if (!connection) {
       console.error('❌ [REFRESH_CHECK] Database connection failed')
-      return NextResponse.json(
-        { 
-          newDataAvailable: false, 
-          error: 'Database connection failed',
-          lastCheckTime: lastCheckTime.toISOString(),
-          currentTime: new Date().toISOString()
-        },
-        { status: 503 }
-      )
+      const errorResponse = {
+        newDataAvailable: false, 
+        error: 'Database connection failed',
+        lastCheckTime: lastCheckTime.toISOString(),
+        currentTime: new Date().toISOString()
+      }
+      return NextResponse.json(errorResponse, { status: 503 })
     }
     
-    // Get current resource counts
-    const totalResources = await Resource.countDocuments({})
-    const youtubeVideosCount = await Resource.countDocuments({ source: 'YouTube' })
-    const articlesCount = await Resource.countDocuments({ source: { $ne: 'YouTube' } })
+    // OPTIMIZED: Use a single aggregation pipeline to get all the data we need
+    const aggregationResult = await Resource.aggregate([
+      {
+        $facet: {
+          totalCount: [{ $count: "count" }],
+          youtubeCount: [{ $match: { source: 'YouTube' } }, { $count: "count" }],
+          latestResource: [{ $sort: { createdAt: -1 } }, { $limit: 1 }],
+          latestYouTube: [{ $match: { source: 'YouTube' } }, { $sort: { createdAt: -1 } }, { $limit: 1 }],
+          latestArticle: [{ $match: { source: { $ne: 'YouTube' } } }, { $sort: { createdAt: -1 } }, { $limit: 1 }],
+          newSinceLastCheck: [{ $match: { createdAt: { $gt: lastCheckTime } } }, { $count: "count" }],
+          newYouTubeSinceLastCheck: [{ $match: { source: 'YouTube', createdAt: { $gt: lastCheckTime } } }, { $count: "count" }],
+          newArticlesSinceLastCheck: [{ $match: { source: { $ne: 'YouTube' }, createdAt: { $gt: lastCheckTime } } }, { $count: "count" }]
+        }
+      }
+    ])
+    
+    const result = aggregationResult[0]
+    
+    // Extract values from aggregation result
+    const totalResources = result.totalCount[0]?.count || 0
+    const youtubeVideosCount = result.youtubeCount[0]?.count || 0
+    const articlesCount = totalResources - youtubeVideosCount
+    
+    const latestResource = result.latestResource[0] || null
+    const latestYouTubeVideo = result.latestYouTube[0] || null
+    const latestArticle = result.latestArticle[0] || null
+    
+    const newResourcesSinceLastCheck = result.newSinceLastCheck[0]?.count || 0
+    const newYouTubeVideosSinceLastCheck = result.newYouTubeSinceLastCheck[0]?.count || 0
+    const newArticlesSinceLastCheck = result.newArticlesSinceLastCheck[0]?.count || 0
     
     console.log('📊 [REFRESH_CHECK] Current counts:', {
       total: totalResources,
       youtube: youtubeVideosCount,
       articles: articlesCount
-    })
-    
-    // Get the most recent resource
-    const latestResource = await Resource.findOne(
-      {},
-      { createdAt: 1, updatedAt: 1, source: 1 },
-      { sort: { createdAt: -1 } }
-    )
-    
-    // Get the most recent YouTube video
-    const latestYouTubeVideo = await Resource.findOne(
-      { source: 'YouTube' },
-      { createdAt: 1, updatedAt: 1 },
-      { sort: { createdAt: -1 } }
-    )
-    
-    // Get the most recent article (non-YouTube)
-    const latestArticle = await Resource.findOne(
-      { source: { $ne: 'YouTube' } },
-      { createdAt: 1, updatedAt: 1 },
-      { sort: { createdAt: -1 } }
-    )
-    
-    // Check if any new resources were created since last check
-    const newResourcesSinceLastCheck = await Resource.countDocuments({
-      createdAt: { $gt: lastCheckTime }
-    })
-    
-    // Check if any YouTube videos were created since last check
-    const newYouTubeVideosSinceLastCheck = await Resource.countDocuments({
-      source: 'YouTube',
-      createdAt: { $gt: lastCheckTime }
-    })
-    
-    // Check if any articles were created since last check
-    const newArticlesSinceLastCheck = await Resource.countDocuments({
-      source: { $ne: 'YouTube' },
-      createdAt: { $gt: lastCheckTime }
     })
     
     console.log('📊 [REFRESH_CHECK] New content since last check:', {
@@ -151,6 +156,13 @@ export async function GET(request: Request) {
       }
     }
     
+    // Cache the response
+    cache = {
+      data: response,
+      timestamp: now,
+      lastCheckTime: lastCheckTime.toISOString()
+    }
+    
     const duration = Date.now() - startTime
     
     console.log('✅ [REFRESH_CHECK] Check completed:', {
@@ -188,6 +200,9 @@ export async function GET(request: Request) {
 export async function POST() {
   try {
     console.log('🔄 [REFRESH_CHECK] Manual refresh check triggered')
+    
+    // Clear cache for manual refresh
+    cache = null
     
     // Use current time as last check time for immediate comparison
     const lastCheckTime = new Date(Date.now() - 5 * 60 * 1000) // 5 minutes ago
